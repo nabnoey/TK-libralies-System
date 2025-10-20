@@ -1,0 +1,23 @@
+# Node.js
+**/node_modules/
+npm-debug.log
+yarn-debug.log
+.env
+
+# React (Frontend)
+build/
+dist/
+.parcel-cache/ # If using Parcel bundler
+.next/ # If using Next.js
+.vite/ # If using Vite
+
+# Docker
+.dockerignore
+!docker-compose.yml # Include docker-compose.yml
+!Dockerfile # Include Dockerfile (if separate from docker-compose)
+data/ # Directory for PostgreSQL data volume (if persisted locally)
+volumes/ # General directory for Docker volumes
+
+# Operating System Specific
+.DS_Store
+Thumbs.db

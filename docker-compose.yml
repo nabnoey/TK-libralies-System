@@ -1,0 +1,37 @@
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - "./server:/app"
+      - "/app/node_modules"
+    command: nodemon --legacy-watch index.js
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tk_libralies
+      - HOST=db
+      - USER=postgres
+      - PASSWORD=postgres
+      - DB=tk_libralies
+      - DB_PORT=5432
+      - SERVER_PORT=5000
+    restart: always
+    depends_on:
+      - db
+  
+  db:
+    image: postgres:16
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=tk_libralies
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      
+volumes:
+  pgdata:
