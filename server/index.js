@@ -13,4 +13,9 @@ app.get('/', (req, res) => {
     res.send('TK-libralies-System')
 })
 
+const movieSeatRouter = require('./routers/movieSeat.router')
+
+app.use('/api/v1/movie-seat', movieSeatRouter)
+
+
 app.listen(5000, () => console.log(`Server is running on http://localhost:${PORT}`))
