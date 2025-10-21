@@ -14,8 +14,10 @@ app.get('/', (req, res) => {
 })
 
 const movieSeatRouter = require('./routers/movieSeat.router')
+const karaokeRoomRouter = require('./routers/karaokeRoom.router')
 
 app.use('/api/v1/movie-seat', movieSeatRouter)
+app.use('/api/v1/karaoke-room', karaokeRoomRouter)
 
 
 app.listen(5000, () => console.log(`Server is running on http://localhost:${PORT}`))
