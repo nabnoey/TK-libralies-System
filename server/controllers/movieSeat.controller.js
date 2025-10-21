@@ -5,7 +5,7 @@ movieSeatController.create = async (req, res) => {
   try {
     const { image, status } = req.body;
 
-    if (!image || !status) {
+    if (!image || status === undefined) {
       res
         .status(400)
         .send({ message: ", image or status can not be empty!" });
