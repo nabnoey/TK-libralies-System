@@ -15,7 +15,7 @@ async function verifyGoogleIdToken(idToken) {
 
 function signJwt(user) {
   return jwt.sign(
-    { uid: user.id, email: user.email, role: user.role },
+    { uid: user.userId, email: user.email, role: user.role },
     jwtSecret,
     { expiresIn: "7d" }
   );

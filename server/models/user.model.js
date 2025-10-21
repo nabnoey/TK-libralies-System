@@ -15,10 +15,4 @@ const User = sequelize.define("User", {
   timestamps: true,
 });
 
-User.sync({ force: false }).then(() => {
-    console.log("table created or already existed")
-}).catch((error) => {
-    console.log("error while creating User table", error)
-})
-
 module.exports = User;
