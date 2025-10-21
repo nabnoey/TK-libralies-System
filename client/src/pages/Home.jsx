@@ -65,11 +65,9 @@ function Home() {
         </div>
       </div>
 
-      <div className=" bg-blue-950 w-50 h-15 justify-center mt-10 ml-175 rounded-lg">
-        <div className="text-white text-center pt-2.5 text-[25px]">
-          รอบจอง65555
-        </div>
-      </div>
+    <div className=" bg-blue-950 w-50 h-15 justify-center mt-10 ml-175 rounded-lg">
+    <div class="text-white text-center pt-2.5 text-[25px]">รอบจอง65555</div>
+</div>
 
       <div className="movies ml-30 ">
         <div className="pt-20 text-[30px] bold-5">ภาพยนต์แนะนำ</div>
