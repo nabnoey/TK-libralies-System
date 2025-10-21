@@ -1,4 +1,4 @@
-const { DataTypes, DatabaseError } = require('sequelize')
+const { DataTypes } = require('sequelize')
 const sequelize = require('./db')
 const MovieSeat = sequelize.define("MovieSeat", {
     movieId: {
