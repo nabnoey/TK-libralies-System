@@ -6,6 +6,10 @@ import Movies from "../pages/Movies.jsx";
 import Karaoke from "../pages/Karaoke.jsx";
 import UserProfile from "../pages/UserProfile.jsx";
 import Login from "../pages/Login.jsx";
+import AddMovieSeat from "../pages/AddMovieSeat.jsx";
+import AddKaraokeRoom from "../pages/AddKaraokeRoom.jsx";
+import EditMovieSeat from "../pages/EditMovieSeat.jsx";
+import EditKaraokeRoom from "../pages/EditKaraokeRoom.jsx";
 
 const router = createBrowserRouter([
 
@@ -33,7 +37,27 @@ const router = createBrowserRouter([
   {
     path:"/login",  
     element:<Login/>
-  }
+  },
+
+  {
+    path:"/add-movieSeat",  
+    element:<AddMovieSeat/>
+  },
+
+  {
+    path:"/add-karaokeRoom",  
+    element:<AddKaraokeRoom/>
+  },
+
+  {
+    path:"/edit-movieSeat",  
+    element:<EditMovieSeat/>
+  },
+
+  {
+    path:"/edit-karaokeRoom",  
+    element:<EditKaraokeRoom/>
+  },
 ])
 
 export default router;
