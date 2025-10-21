@@ -1,16 +1,20 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
-const Card = () => {
+const Card = ({ id,image, title }) => {
   return (
    <div className="card bg-blue-950 w-85 shadow-sm ">
   <figure>
-    <img
-      src="https://cms.dmpcdn.com/dara/2024/08/08/39f37330-5552-11ef-bc34-1f5c3bc9eab0_webp_original.webp"
-      alt="Shoes" />
+ <img
+          src={image}
+          alt={title}
+          className="w-full h-64 object-cover rounded-t-lg"
+        />
   </figure>
   <div className="card-body">
-    <h2 className="card-title">ธี่หยด2</h2>
-    <p>ประเภท: ระทึกขวัญ</p>
+    <h2 className="card-title">{title}</h2>
+   
+   
 
     
  <div className="flex items-center gap-2">
@@ -25,7 +29,7 @@ const Card = () => {
     
 
     <div className="pt-10 ccd-actions justify-end w-100 ml-45 gap-5">
-      <button className="btn bg-amber-50 text-black rounded-xl">ดูเพิ่มเติม</button>
+      <Link to={`/details/${id}`} className="btn bg-amber-50 text-black rounded-xl">ดูเพิ่มเติม</Link>
     </div>
   </div>
 </div>

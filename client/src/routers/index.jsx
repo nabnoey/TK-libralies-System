@@ -6,6 +6,7 @@ import Movies from "../pages/Movies.jsx";
 import Karaoke from "../pages/Karaoke.jsx";
 import UserProfile from "../pages/UserProfile.jsx";
 import Login from "../pages/Login.jsx";
+import Details from "../pages/Details.jsx"; 
 
 const router = createBrowserRouter([
 
@@ -33,6 +34,11 @@ const router = createBrowserRouter([
   {
     path:"/login",  
     element:<Login/>
+  },
+
+  {
+    path:"/details/:id",  
+    element:<Details/>
   }
 ])
 

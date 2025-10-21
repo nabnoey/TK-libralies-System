@@ -30,8 +30,8 @@ const CardMovie = () => {
 
     
 
-    <div className="pt-10 ccd-actions justify-end w-100 ml-45 gap-5">
-      <button className="btn bg-green-600 text-white rounded-xl order-2 border-white">จองห้อง</button>
+    <div className="pt-10  ccd-actions  justify-end w-100 ml-45 gap-5">
+      <button className="btn bg-green-600 ml-4 text-white rounded-xl order-2 border-white">จองห้อง</button>
     </div>
   </div>
 </div>

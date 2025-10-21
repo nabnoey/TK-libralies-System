@@ -10,8 +10,8 @@ const Navbar = () => {
   const [jwt, setJwt] = useState(localStorage.getItem("token") || "");
 
   const menuItems = [
-    { name: "หน้าแรก", url: "/home" },
-    { name: "ภาพยนตร์", url: "/home" },
+    { name: "หน้าแรก", url: "/" },
+    { name: "ภาพยนตร์", url: "/" },
     { name: "โรงภาพยนตร์", url: "/movies" },
     { name: "คาราโอเกะ", url: "/karaoke" },
   ];

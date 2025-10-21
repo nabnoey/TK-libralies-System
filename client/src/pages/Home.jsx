@@ -1,7 +1,16 @@
+import React from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Card from "../components/Card";
+import { getMovies } from "../services/movieService";
 
 function Home() {
+  const [movies, setMovies] = useState([]);
+
+  useEffect(() => {
+    getMovies().then((data) => setMovies(data));
+  }, []);
+
   return (
     <div>
       <Navbar />
@@ -66,9 +75,7 @@ function Home() {
       </div>
 
       <div className=" bg-blue-950 w-50 h-15 justify-center mt-10 ml-175 rounded-lg">
-        <div className="text-white text-center pt-2.5 text-[25px]">
-          รอบจอง65555
-        </div>
+        <div class="text-white text-center pt-2.5 text-[25px]">รอบจอง</div>
       </div>
 
       <div className="movies ml-30 ">
@@ -76,12 +83,15 @@ function Home() {
       </div>
 
       <div className="pt-20 grid grid-cols-3 gap-10 mr-35 ml-55 mb-20">
-        <Card />
-        <Card />
-        <Card />
-        <Card />
-        <Card />
-        <Card />
+        {movies.map((movie) => (
+          <Card
+            key={movie.id}
+            id={movie.id}
+            image={movie.image}
+            title={movie.title}
+            description={movie.description}
+          />
+        ))}
       </div>
     </div>
   );
