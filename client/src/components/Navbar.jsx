@@ -16,6 +16,10 @@ const Navbar = () => {
     { name: "คาราโอเกะ", url: "/karaoke" },
   ];
 
+    if (me?.role === "admin") {
+    menuItems.push({ name: "Dashboard", url: "/dashboard" });
+  }
+
   // รอจนสคริปต์ GIS โหลดเสร็จ
   const waitForGoogle = () =>
     new Promise((resolve) => {

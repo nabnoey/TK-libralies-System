@@ -7,6 +7,9 @@ import Karaoke from "../pages/Karaoke.jsx";
 import UserProfile from "../pages/UserProfile.jsx";
 import Login from "../pages/Login.jsx";
 import Details from "../pages/Details.jsx"; 
+import Dashboard from "../pages/Dashboard.jsx";
+import ReservationMovies from "../pages/ReservationMovies.jsx";
+import ReservationKaraoke from "../pages/ReservationKaraoke.jsx";
 
 const router = createBrowserRouter([
 
@@ -39,6 +42,21 @@ const router = createBrowserRouter([
   {
     path:"/details/:id",  
     element:<Details/>
+  },
+
+  {
+    path:"/dashboard",  
+    element:<Dashboard/>
+  },
+
+  {
+    path:"/reservation-movies",  
+    element:<ReservationMovies/>
+  },
+
+  {
+    path:"/reservation-karaoke",  
+    element:<ReservationKaraoke/>
   }
 ])
 
