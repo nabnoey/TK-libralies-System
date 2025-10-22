@@ -14,6 +14,9 @@ const MovieSeat = sequelize.define("MovieSeat", {
         type: DataTypes.BOOLEAN,
         allowNull: false
     }
+}, {
+    tableName: 'MovieSeats',
+    timestamps: true
 })
 
 MovieSeat.sync({ force: false }).then(() => {

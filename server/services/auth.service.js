@@ -1,5 +1,6 @@
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 const { googleClientId, jwtSecret } = require("../config/env");
 const User = require("../models/user.model");
 
@@ -58,4 +59,65 @@ async function loginWithGoogle(idToken) {
   return { token, user };
 }
 
-module.exports = { loginWithGoogle };
+async function registerAdmin(email, password, name) {
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+
+  // ตรวจสอบว่า email นี้ถูกใช้งานแล้วหรือไม่
+  const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
+  if (existingUser) {
+    throw new Error("Email already exists");
+  }
+
+  // เข้ารหัส password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // สร้าง admin user
+  const user = await User.create({
+    email: email.toLowerCase(),
+    password: hashedPassword,
+    name: name || email.split("@")[0],
+    provider: "local",
+    role: "admin",
+    lastLoginAt: new Date(),
+  });
+
+  const token = signJwt(user);
+  return { token, user: {
+    userId: user.userId,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  }};
+}
+
+async function loginAdmin(email, password) {
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+
+  const user = await User.findOne({ where: { email: email.toLowerCase() } });
+  if (!user || !user.password) {
+    throw new Error("Invalid email or password");
+  }
+
+  // ตรวจสอบ password
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    throw new Error("Invalid email or password");
+  }
+
+  // อัปเดต lastLoginAt
+  await user.update({ lastLoginAt: new Date() });
+
+  const token = signJwt(user);
+  return { token, user: {
+    userId: user.userId,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  }};
+}
+
+module.exports = { loginWithGoogle, registerAdmin, loginAdmin };
