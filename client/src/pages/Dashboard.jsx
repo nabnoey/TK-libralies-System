@@ -1,69 +1,79 @@
 import React from "react";
 import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
+import { Link } from "react-router-dom"; // ✅ เพิ่มตรงนี้
 
 function Dashboard() {
   return (
-    <div className="min-h-screen bg-base-200">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-sky-100 to-purple-100">
       <Navbar />
 
-      <div className="container mx-auto px-6 py-10">
-        {/* หัวข้อหลัก */}
-        <h1 className="text-3xl font-bold mb-6 text-center">Dashboard (Admin)</h1>
-        <p className="text-center text-gray-500 mb-10">
-          จัดการข้อมูลเพิ่มรอบโรงภาพยนตร์และห้องคาราโอเกะได้ที่นี่
-        </p>
+      <div className="container mx-auto px-6 py-12">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600 drop-shadow-md">
+            Dashboard (Admin)
+          </h1>
+          <p className="text-gray-600 mt-3 text-lg">
+            จัดการข้อมูล เพิ่มรอบโรงภาพยนตร์และห้องคาราโอเกะได้ที่นี่
+          </p>
+          <div className="mt-5 w-32 h-1.5 bg-gradient-to-r from-indigo-400 to-purple-500 mx-auto rounded-full shadow-md" />
+        </div>
 
-        {/* ส่วนของการ์ด 2 หมวด */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* การ์ดเพิ่มหนัง */}
-          <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* การ์ดโรงภาพยนตร์ */}
+          <div className="card bg-base-100 shadow-xl border border-indigo-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 rounded-2xl">
+            <figure className="px-10 pt-10">
+              <img
+                src="https://www.thaihealth.or.th/data/content/2020/05/52450/cms/newscms_thaihealth_c_hmnsuvw12457.jpg"
+                alt="โรงภาพยนตร์"
+                className="w-fit h-50 object-cover rounded-xl"
+              />
+            </figure>
             <div className="card-body items-center text-center">
-              <h2 className="card-title text-2xl mb-2">🎬 โรงภาพยนตร์</h2>
-              {/* <p className="text-sm text-gray-500">
-                เพิ่ม แก้ไข หรือลบข้อมูลภาพยนตร์ในระบบ
-              </p> */}
-              <div className="card-actions justify-end mt-5">
-                <Link to="/reservation-movies" className="btn btn-primary">
+              <h2 className="card-title text-2xl font-bold text-indigo-600">
+                🎬 โรงภาพยนตร์
+              </h2>
+              <p className="text-gray-500 mt-2 mb-4">
+                เพิ่มรอบการจองและจัดการข้อมูลโรงภาพยนตร์ทั้งหมด
+              </p>
+              <div className="card-actions justify-center">
+                {/* ✅ ใช้ Link แทน a */}
+                <Link
+                  to="/reservation-movies"
+                  className="btn bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-none hover:scale-105 transition-all duration-300"
+                >
                   เพิ่มรอบจอง
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* การ์ดเพิ่มคาราโอเกะ */}
-          <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300">
+          {/* การ์ดคาราโอเกะ */}
+          <div className="card bg-base-100 shadow-xl border border-pink-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 rounded-2xl">
+            <figure className="px-10 pt-10">
+              <img
+                src="https://img.wongnai.com/p/624x0/2019/06/03/d7fb356d07f84684b3661fd6538d8ed3.jpg"
+                alt="ห้องคาราโอเกะ"
+                className="w-fit h-50 object-cover rounded-xl"
+              />
+            </figure>
             <div className="card-body items-center text-center">
-              <h2 className="card-title text-2xl mb-2">🎤 ห้องคาราโอเกะ</h2>
-              {/* <p className="text-sm text-gray-500">
-                เพิ่มเพลงหรือห้องคาราโอเกะใหม่ในระบบ
-              </p> */}
-              <div className="card-actions justify-end mt-5">
-                <Link to="/reservation-karaoke" className="btn btn-secondary">
+              <h2 className="card-title text-2xl font-bold text-pink-600">
+                🎤 ห้องคาราโอเกะ
+              </h2>
+              <p className="text-gray-500 mt-2 mb-4">
+                เพิ่มรอบจองห้องคาราโอเกะและดูรายการทั้งหมดในระบบ
+              </p>
+              <div className="card-actions justify-center">
+                <Link
+                  to="/reservation-karaoke"
+                  className="btn bg-gradient-to-r from-pink-500 to-rose-400 text-white border-none hover:scale-105 transition-all duration-300"
+                >
                   เพิ่มรอบจอง
                 </Link>
               </div>
             </div>
           </div>
         </div>
-
-        {/* ส่วนอื่นในอนาคต เช่น สถิติ
-        <div className="mt-16">
-          <h2 className="text-xl font-semibold mb-4">📊 สถิติการใช้งาน</h2>
-          <div className="stats shadow">
-            <div className="stat">
-              <div className="stat-title">จำนวนภาพยนตร์</div>
-              <div className="stat-value text-primary">128</div>
-              <div className="stat-desc">อัปเดตล่าสุดเมื่อ 2 ชม.ที่แล้ว</div>
-            </div>
-
-            <div className="stat">
-              <div className="stat-title">จำนวนห้องคาราโอเกะ</div>
-              <div className="stat-value text-secondary">42</div>
-              <div className="stat-desc">อัปเดตล่าสุดเมื่อ 3 ชม.ที่แล้ว</div>
-            </div>
-          </div>
-        </div> */}
       </div>
     </div>
   );
