@@ -6,17 +6,17 @@ import Movies from "../pages/Movies.jsx";
 import Karaoke from "../pages/Karaoke.jsx";
 import UserProfile from "../pages/UserProfile.jsx";
 import Login from "../pages/Login.jsx";
-<<<<<<< HEAD
+
 import Details from "../pages/Details.jsx"; 
 import Dashboard from "../pages/Dashboard.jsx";
 import ReservationMovies from "../pages/ReservationMovies.jsx";
 import ReservationKaraoke from "../pages/ReservationKaraoke.jsx";
-=======
+
 import AddMovieSeat from "../pages/AddMovieSeat.jsx";
 import AddKaraokeRoom from "../pages/AddKaraokeRoom.jsx";
 import EditMovieSeat from "../pages/EditMovieSeat.jsx";
 import EditKaraokeRoom from "../pages/EditKaraokeRoom.jsx";
->>>>>>> feature/movie-seats
+
 
 const router = createBrowserRouter([
 
@@ -47,7 +47,7 @@ const router = createBrowserRouter([
   },
 
   {
-<<<<<<< HEAD
+
     path:"/details/:id",  
     element:<Details/>
   },
@@ -65,8 +65,9 @@ const router = createBrowserRouter([
   {
     path:"/reservation-karaoke",  
     element:<ReservationKaraoke/>
-  }
-=======
+  },
+
+{
     path:"/add-movieSeat",  
     element:<AddMovieSeat/>
   },
@@ -85,7 +86,7 @@ const router = createBrowserRouter([
     path:"/edit-karaokeRoom",  
     element:<EditKaraokeRoom/>
   },
->>>>>>> feature/movie-seats
+
 ])
 
 export default router;
