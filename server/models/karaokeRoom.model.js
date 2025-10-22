@@ -14,6 +14,9 @@ const KaraokeRoom = sequelize.define("KaraokeRoom", {
         type: DataTypes.BOOLEAN,
         allowNull: false
     }
+}, {
+    tableName: 'KaraokeRooms',
+    timestamps: true
 })
 
 KaraokeRoom.sync({ force: false }).then(() => {
