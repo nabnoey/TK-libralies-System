@@ -24,7 +24,7 @@ function Dashboard() {
                 เพิ่ม แก้ไข หรือลบข้อมูลภาพยนตร์ในระบบ
               </p> */}
               <div className="card-actions justify-end mt-5">
-                <Link to="/reservation-movies" className="btn btn-primary">
+                <Link to="/add-movieSeat" className="btn btn-primary">
                   เพิ่มรอบจอง
                 </Link>
               </div>
@@ -39,7 +39,7 @@ function Dashboard() {
                 เพิ่มเพลงหรือห้องคาราโอเกะใหม่ในระบบ
               </p> */}
               <div className="card-actions justify-end mt-5">
-                <Link to="/reservation-karaoke" className="btn btn-secondary">
+                <Link to="/add-karaokeRoom" className="btn btn-secondary">
                   เพิ่มรอบจอง
                 </Link>
               </div>
