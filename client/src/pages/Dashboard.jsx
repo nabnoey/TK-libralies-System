@@ -36,7 +36,7 @@ function Dashboard() {
               <div className="card-actions justify-center">
                 {/* ✅ ใช้ Link แทน a */}
                 <Link
-                  to="/reservation-movies"
+                  to="/add-movieSeat"
                   className="btn bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-none hover:scale-105 transition-all duration-300"
                 >
                   เพิ่มรอบจอง
@@ -63,7 +63,7 @@ function Dashboard() {
               </p>
               <div className="card-actions justify-center">
                 <Link
-                  to="/reservation-karaoke"
+                  to="/add-karaokeRoom"
                   className="btn bg-gradient-to-r from-pink-500 to-rose-400 text-white border-none hover:scale-105 transition-all duration-300"
                 >
                   เพิ่มรอบจอง
