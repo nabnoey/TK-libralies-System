@@ -2,6 +2,7 @@ const User = require('./user.model')
 const KaraokeRoom = require('./karaokeRoom.model')
 const MovieSeat = require('./movieSeat.model')
 const Reservation = require('./reservation.model')
+const Notification = require('./notification.model')
 
 // User - Reservation associations
 User.hasMany(Reservation, {
@@ -12,6 +13,28 @@ User.hasMany(Reservation, {
 Reservation.belongsTo(User, {
     foreignKey: 'userId',
     as: 'user'
+})
+
+// User - Notification associations
+User.hasMany(Notification, {
+    foreignKey: 'userId',
+    as: 'notifications'
+})
+
+Notification.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user'
+})
+
+// Reservation - Notification associations
+Reservation.hasMany(Notification, {
+    foreignKey: 'reservationId',
+    as: 'notifications'
+})
+
+Notification.belongsTo(Reservation, {
+    foreignKey: 'reservationId',
+    as: 'reservation'
 })
 
 // KaraokeRoom - Reservation associations
@@ -50,5 +73,6 @@ module.exports = {
     User,
     KaraokeRoom,
     MovieSeat,
-    Reservation
+    Reservation,
+    Notification
 }

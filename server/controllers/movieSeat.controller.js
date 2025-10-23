@@ -3,16 +3,17 @@ const movieSeatController = {};
 
 movieSeatController.create = async (req, res) => {
   try {
-    const { image, status } = req.body;
+    const { name, image, status } = req.body;
 
-    if (!image || status === undefined) {
+    if (!name || !image || status === undefined) {
       res
         .status(400)
-        .send({ message: ", image or status can not be empty!" });
+        .send({ message: "name, image or status can not be empty!" });
       return;
     }
 
     const newMovieSeat = {
+      name: name,
       image: image,
       status: status,
     };
@@ -59,14 +60,19 @@ movieSeatController.getById = async (req, res) => {
 
 movieSeatController.update = async (req, res) => {
   try{
-    const { image, status } = req.body
+    const { name, image, status } = req.body
     const { id } = req.params
 
-    if(!image && !status){
-      return res.status(400).json({ message: 'image or status can not empty!'})
+    if(!name && !image && status === undefined){
+      return res.status(400).json({ message: 'name, image or status can not empty!'})
     }
 
-    await MovieSeat.update({ image: image, status: status }, { where: { movieId: id}}).then((n) => {
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (image) updateData.image = image;
+    if (status !== undefined) updateData.status = status;
+
+    await MovieSeat.update(updateData, { where: { movieId: id}}).then((n) => {
       if(n[0] === 1){
         res.send({ message: 'MovieSeat Update Successfully!'})
       }else{

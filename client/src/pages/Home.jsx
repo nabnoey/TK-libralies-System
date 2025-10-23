@@ -17,11 +17,7 @@ function Home() {
 
       {/* 🔹 Hero Section */}
       <div className="relative w-full h-[80vh] overflow-hidden mt-16">
-        <img
-          src="https://images.unsplash.com/photo-1608889175123-8a9b6e97c02e?q=80&w=2070"
-          alt="Hero"
-          className="absolute inset-0 w-full h-full object-cover brightness-75"
-        />
+        
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-purple-900/30 to-transparent"></div>
 
         <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-6">

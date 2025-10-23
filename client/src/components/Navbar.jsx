@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom";
-
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getMovies } from "../services/movieService";
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -11,12 +10,10 @@ const Navbar = () => {
   const [me, setMe] = useState(null);
   const [jwt, setJwt] = useState(localStorage.getItem("token") || "");
   const [menuOpen, setMenuOpen] = useState(false);
-  const location = useLocation();
-
-  // สำหรับ dropdown search
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
 
   const menuItems = [
@@ -30,9 +27,7 @@ const Navbar = () => {
     menuItems.push({ name: "Dashboard", url: "/dashboard" });
   }
 
-
-  // รอจนสคริปต์ Google Identity Services โหลดเสร็จ
-
+  // โหลด Google Auth
   const waitForGoogle = () =>
     new Promise((resolve) => {
       if (window.google?.accounts?.id) return resolve();
@@ -45,7 +40,7 @@ const Navbar = () => {
       setTimeout(() => clearInterval(id), 10000);
     });
 
-  // ดึงข้อมูล user
+  // ดึงข้อมูลผู้ใช้
   const fetchMe = async (token) => {
     try {
       const res = await fetch(`${API_BASE}/me`, {
@@ -58,19 +53,19 @@ const Navbar = () => {
     }
   };
 
-  // ดึงข้อมูลหนังทั้งหมด
-  const fetchMovies = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/movies`);
-      const data = await res.json();
-      setResults(data);
-    } catch (err) {
-      console.error("fetchMovies error:", err);
-    }
-  };
+  // ดึงข้อมูลหนังทั้งหมด (สำหรับ Search)
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getMovies();
+        setResults(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("search preload error", err);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
-    fetchMovies();
     (async () => {
       await waitForGoogle();
 
@@ -112,26 +107,7 @@ const Navbar = () => {
       }
     })();
 
-
     if (jwt) fetchMe(jwt);
-  }, [jwt]);
-
-  const fetchMe = async (token) => {
-    try {
-      const res = await fetch(`${API_BASE}/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok) setMe(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-
-    if (jwt) {
-      fetchMe(jwt);
-    }
   }, [jwt]);
 
   const logout = () => {
@@ -147,17 +123,16 @@ const Navbar = () => {
   };
 
   const filteredMovies = results.filter((m) =>
-    m.title.toLowerCase().includes(query.toLowerCase())
+    (m?.title || "").toLowerCase().includes(query.toLowerCase())
   );
 
   const handleSelectMovie = (id) => {
     setQuery("");
     setShowDropdown(false);
-    navigate(`/details/${id}`);
+    if (id) navigate(`/details/${id}`);
   };
 
   return (
-
     <header className="fixed top-0 left-0 w-full z-50 bg-gradient-to-r from-indigo-900 via-purple-800 to-pink-700 text-white shadow-lg backdrop-blur-md border-b border-white/10 transition-all">
       <div className="flex items-center justify-between px-6 md:px-10 py-4">
         {/* โลโก้ */}
@@ -170,45 +145,6 @@ const Navbar = () => {
 
         {/* เมนูหลัก (Desktop) */}
         <nav className="hidden md:flex gap-8">
-
-    <div className="navbar bg-base-100 shadow-sm py-5 px-10">
-      <div className="navbar-start">
-        <div className="dropdown">
-          <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </div>
-          <ul
-            tabIndex={0}
-            className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
-          >
-            {menuItems.map((item) => (
-              <li key={item.name}>
-                <Link to={item.url}>{item.name}</Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <Link to="/" className="btn btn-ghost text-xl">
-          NPRU Booking
-        </Link>
-      </div>
-
-      <div className="navbar-center hidden lg:flex mr-145">
-        <ul className="menu menu-horizontal px-1">
-
           {menuItems.map((item) => (
             <Link
               key={item.name}
@@ -222,81 +158,62 @@ const Navbar = () => {
               {item.name}
             </Link>
           ))}
-
         </nav>
 
         {/* ส่วนขวา */}
         <div className="flex items-center gap-4">
-          {/* 🔍 ช่องค้นหา (Desktop) */}
-          <div className="hidden md:flex items-center bg-white/90 rounded-full shadow-inner px-3 py-1.5 focus-within:ring-2 focus-within:ring-pink-400 transition">
-            <i className="fa-solid fa-magnifying-glass text-pink-600 mr-2"></i>
-            <input
-              type="text"
-              placeholder="ค้นหา..."
-              className="bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 w-40 md:w-56"
-            />
-          </div>
-
-        </ul>
-      </div>
-
-      <div className="navbar-end gap-2">
-        {/* Dropdown Search */}
-        <div className="form-control relative">
-          <input
-            type="text"
-            placeholder="ค้นหาภาพยนตร์..."
-            className="input input-bordered w-32 md:w-64"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setShowDropdown(true);
-            }}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-            onFocus={() => query && setShowDropdown(true)}
-          />
-
-          {showDropdown && query && (
-            <ul className="absolute top-full left-0 mt-1 w-full bg-base-100 border border-gray-200 rounded-xl shadow-lg z-50 max-h-64 overflow-y-auto">
-              {filteredMovies.length > 0 ? (
-                filteredMovies.map((movie) => (
-                  <li
-                    key={movie.id}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleSelectMovie(movie.id)}
-                  >
-                    <img
-                      src={movie.image}
-                      alt={movie.title}
-                      className="w-10 h-10 object-cover rounded-md"
-                    />
-                    <span className="truncate">{movie.title}</span>
-                  </li>
-                ))
-              ) : (
-                <li className="p-2 text-gray-400 text-sm text-center">
-                  ไม่พบภาพยนตร์
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-
-        {!jwt || !me ? (
-          <div ref={btnRef} className="ml-2" />
-        ) : (
-          <>
-            <div className="indicator">
-              <button
-                className="btn btn-ghost btn-circle"
-                aria-label="Notifications"
-              >
-                <i className="fa-solid fa-bell text-xl"></i>
-              </button>
+          {/* 🔍 Search */}
+          <div className="hidden md:flex items-center relative">
+            <div className="flex items-center bg-white/90 rounded-full shadow-inner px-3 py-1.5 focus-within:ring-2 focus-within:ring-pink-400 transition w-60">
+              <i className="fa-solid fa-magnifying-glass text-pink-600 mr-2"></i>
+              <input
+                type="text"
+                placeholder="ค้นหาภาพยนตร์..."
+                className="bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 w-full"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => query && setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const first = filteredMovies[0];
+                    if (first) handleSelectMovie(first.id);
+                  }
+                }}
+              />
             </div>
 
+            {/* Dropdown ผลลัพธ์ */}
+            {showDropdown && query && (
+              <ul className="absolute top-full mt-2 w-60 bg-white text-gray-800 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto border border-gray-200">
+                {filteredMovies.length > 0 ? (
+                  filteredMovies.map((movie) => (
+                    <li
+                      key={movie.id}
+                      onMouseDown={() => handleSelectMovie(movie.id)}
+                      className="flex items-center gap-3 p-2 hover:bg-gray-100 cursor-pointer"
+                    >
+                      <img
+                        src={movie.image}
+                        alt={movie.title}
+                        className="w-8 h-8 rounded object-cover"
+                      />
+                      <span className="truncate">{movie.title}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="p-2 text-gray-400 text-center">
+                    ไม่พบผลลัพธ์
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
 
-          {/* โปรไฟล์ / ปุ่ม Login */}
+          {/* 🔐 โปรไฟล์ / ปุ่ม Login */}
           {!jwt || !me ? (
             <div ref={btnRef} className="ml-2" />
           ) : (
@@ -319,54 +236,51 @@ const Navbar = () => {
               </div>
 
               {/* dropdown */}
-              <ul className="hidden group-hover:block absolute right-0 mt-3 w-56 bg-white text-gray-700 rounded-xl shadow-lg overflow-hidden">
-                <li className="p-3 border-b border-gray-200 bg-gray-50">
-                  <span className="block font-semibold text-black">{me.name}</span>
-                  <span className="block text-xs opacity-70">{me.email}</span>
-                </li>
-                <li>
-                  <Link
-                    to="/user-profile"
-                    className="block px-4 py-2 hover:bg-pink-50 transition"
-                  >
-                    โปรไฟล์ของฉัน
-                  </Link>
-
-              <ul
-                tabIndex={0}
-                className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
-              >
-                <li className="menu-title">
-                  <span>{me.name}</span>
-                  <span className="text-xs opacity-60">{me.email}</span>
-                </li>
-                <li>
-                  <Link to="/user-profile">โปรไฟล์</Link>
-
-                </li>
-                <li>
-                  <button
-                    onClick={logout}
-                    className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-100 transition"
-                  >
-                    ออกจากระบบ
-                  </button>
-                </li>
-              </ul>
+              <div className="absolute right-0 mt-3 z-50 pb-6">
+                <ul className="hidden group-hover:block w-56 bg-white text-gray-700 rounded-xl shadow-lg overflow-hidden pointer-events-auto transition-all duration-200 delay-200">
+                  <li className="p-3 border-b border-gray-200 bg-gray-50">
+                    <span className="block font-semibold text-black">
+                      {me.name}
+                    </span>
+                    <span className="block text-xs opacity-70">{me.email}</span>
+                  </li>
+                  <li>
+                    <Link
+                      to="/user-profile"
+                      className="block px-4 py-2 hover:bg-pink-50 transition"
+                    >
+                      โปรไฟล์ของฉัน
+                    </Link>
+                  </li>
+                  <li>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        logout();
+                      }}
+                      className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-100 transition"
+                    >
+                      ออกจากระบบ
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </div>
           )}
 
-          {/* ปุ่มเมนู (Mobile) */}
+          {/* ปุ่มเมนูมือถือ */}
           <button
             className="md:hidden text-white text-2xl focus:outline-none"
             onClick={() => setMenuOpen(!menuOpen)}
           >
-            <i className={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`}></i>
+            <i
+              className={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`}
+            ></i>
           </button>
         </div>
       </div>
 
-      {/* เมนู Mobile */}
+      {/* เมนูมือถือ */}
       {menuOpen && (
         <div className="md:hidden bg-gradient-to-b from-purple-900 to-pink-700 border-t border-white/10 animate-fadeIn">
           <nav className="flex flex-col items-center py-4 space-y-3">
@@ -376,7 +290,9 @@ const Navbar = () => {
                 to={item.url}
                 onClick={() => setMenuOpen(false)}
                 className={`text-lg font-medium hover:text-yellow-200 ${
-                  location.pathname === item.url ? "text-yellow-300" : "text-white"
+                  location.pathname === item.url
+                    ? "text-yellow-300"
+                    : "text-white"
                 }`}
               >
                 {item.name}
