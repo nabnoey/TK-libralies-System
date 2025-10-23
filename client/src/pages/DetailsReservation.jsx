@@ -2,15 +2,12 @@ import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
-
 function DetailsReservation() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // รับค่าจากการ navigate มาจากทั้งโรงหนังและคาราโอเกะ
   const { theater, seats, studentCodes } = location.state || {};
 
-  // Persist state if present; otherwise try to load from localStorage
   useEffect(() => {
     if (location.state && theater && seats && studentCodes) {
       try {
@@ -18,7 +15,7 @@ function DetailsReservation() {
           "lastReservation",
           JSON.stringify({ theater, seats, studentCodes, savedAt: Date.now() })
         );
-      } catch { /* ignore persist errors */ }
+      } catch {}
       return;
     }
     try {
@@ -27,51 +24,54 @@ function DetailsReservation() {
         navigate("/details-reservation", { state: stored, replace: true });
         return;
       }
-    } catch { /* ignore load errors */ }
-    // no stored data -> keep user on this page and show empty state
+    } catch {}
   }, [location.state, theater, seats, studentCodes, navigate]);
 
-  // ตรวจว่าข้อมูลเป็นของอะไร
   const isKaraoke =
     theater && (theater.includes("คาราโอเกะ") || theater.includes("karaoke"));
 
   return (
-    <div className="min-h-screen bg-pink-50">
-      
-      <div className="max-w-2xl mx-auto py-10 px-6">
-        <h1 className="text-3xl font-bold text-pink-600 text-center mb-8">
-          {isKaraoke ? "รายละเอียดการจองห้องคาราโอเกะ 🎤" : "รายละเอียดการจองโรงภาพยนตร์ 🎬"}
+    <div className="min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-pink-900 text-white pt-25">
+      <div className="max-w-3xl mx-auto py-20 px-6 animate-fadeIn">
+        <h1 className="text-4xl font-extrabold text-center mb-10 bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 text-transparent bg-clip-text drop-shadow-lg">
+          {isKaraoke
+            ? "🎤 รายละเอียดการจองห้องคาราโอเกะ"
+            : "🎬 รายละเอียดการจองโรงภาพยนตร์"}
         </h1>
 
         {theater && seats && studentCodes ? (
-          <div className="bg-white rounded-2xl shadow-md p-6 text-blue-950">
-            <p className="mb-3">
-              <b>{isKaraoke ? "ห้องที่จอง:" : "โรงภาพยนตร์:"}</b> {theater}
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl shadow-xl p-8 text-white">
+            <p className="mb-3 text-lg">
+              <b className="text-pink-300">
+                {isKaraoke ? "ห้องที่จอง:" : "โรงภาพยนตร์:"}
+              </b>{" "}
+              {theater}
             </p>
 
-            {/* ถ้าเป็นคาราโอเกะจะไม่ใช้คำว่า “ที่นั่ง” แต่ถ้าเป็นโรงหนังให้แสดง */}
             {!isKaraoke && (
-              <p className="mb-3">
-                <b>ที่นั่งที่จอง:</b> {seats.join(", ")}
+              <p className="mb-3 text-lg">
+                <b className="text-pink-300">ที่นั่งที่จอง:</b>{" "}
+                {seats.join(", ")}
               </p>
             )}
 
             {isKaraoke && (
-              <p className="mb-3">
-                <b>ห้องที่จอง:</b> {seats.join(", ")}
+              <p className="mb-3 text-lg">
+                <b className="text-pink-300">ห้องที่จอง:</b>{" "}
+                {seats.join(", ")}
               </p>
             )}
 
-            <div className="mb-5">
-              <b>รหัสนักศึกษาที่จอง:</b>
-              <ul className="list-disc ml-6 mt-2 space-y-1">
+            <div className="mb-6">
+              <b className="text-pink-300 text-lg">รหัสนักศึกษาที่จอง:</b>
+              <ul className="list-disc ml-6 mt-2 space-y-1 text-gray-200">
                 {studentCodes.map((code, i) => (
                   <li key={i}>{code}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="flex gap-3 justify-center mt-6">
+            <div className="flex gap-4 justify-center mt-8">
               <button
                 onClick={async () => {
                   const res = await Swal.fire({
@@ -85,7 +85,9 @@ function DetailsReservation() {
                     cancelButtonText: "ยกเลิก",
                   });
                   if (!res.isConfirmed) return;
-                  try { localStorage.removeItem("lastReservation"); } catch { /* ignore */ }
+                  try {
+                    localStorage.removeItem("lastReservation");
+                  } catch {}
                   await Swal.fire({
                     title: "ยกเลิกสำเร็จ",
                     icon: "success",
@@ -93,31 +95,33 @@ function DetailsReservation() {
                   });
                   navigate("/details-reservation", { replace: true });
                 }}
-                className="bg-red-500 text-white px-6 py-2 rounded-xl hover:bg-red-600 transition"
+                className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-8 py-2 rounded-full font-semibold shadow-lg transition duration-300"
               >
                 ยกเลิกการจอง
               </button>
               <button
                 onClick={() => navigate("/")}
-                className="bg-pink-500 text-white px-6 py-2 rounded-xl hover:bg-pink-600 transition"
+                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-indigo-700 text-white px-8 py-2 rounded-full font-semibold shadow-lg transition duration-300"
               >
                 กลับหน้าแรก
               </button>
             </div>
           </div>
         ) : (
-          <div className="text-center text-blue-950">
-            <p className="text-gray-600 mb-6">❌ คุณยังไม่ได้จองในขณะนี้</p>
-            <div className="flex gap-3 justify-center">
+          <div className="text-center text-white bg-white/10 backdrop-blur-lg border border-white/20 p-10 rounded-3xl shadow-xl">
+            <p className="text-gray-300 mb-8 text-lg">
+              ❌ คุณยังไม่ได้จองในขณะนี้
+            </p>
+            <div className="flex gap-4 justify-center">
               <button
                 onClick={() => navigate("/movies")}
-                className="btn bg-pink-500 text-white rounded-xl hover:bg-pink-600"
+                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-indigo-700 text-white px-8 py-2 rounded-full font-semibold shadow-lg transition duration-300"
               >
                 ไปจองรอบโรงหนัง
               </button>
               <button
                 onClick={() => navigate("/karaoke")}
-                className="btn bg-indigo-500 text-white rounded-xl hover:bg-indigo-600"
+                className="bg-gradient-to-r from-indigo-500 to-pink-600 hover:from-indigo-600 hover:to-pink-700 text-white px-8 py-2 rounded-full font-semibold shadow-lg transition duration-300"
               >
                 ไปจองห้องคาราโอเกะ
               </button>
@@ -125,6 +129,20 @@ function DetailsReservation() {
           </div>
         )}
       </div>
+
+
+      {/* animation */}
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.8s ease-out;
+          }
+        `}
+      </style>
     </div>
   );
 }

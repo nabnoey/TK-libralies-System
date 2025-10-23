@@ -24,7 +24,7 @@ function Karaoke() {
 
 
       {/* หัวข้อหน้า */}
-      <div className="text-center text-white pt-20 mb-10">
+      <div className="text-center text-white pt-20 mb-10 pt-45">
         <h1 className="text-5xl font-bold mb-4">รอบจองห้องคาราโอเกะ 🎤</h1>
         <p className="text-gray-300">เลือกห้องที่ต้องการเพื่อทำการจอง</p>
       </div>
