@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom"; // ✅ แก้ต
 import Swal from "sweetalert2";
 
 
-const ReservationKaraoke = () => {
+const ReservationMovies = () => {
   const location = useLocation();
   const navigate = useNavigate(); // ✅ เพิ่มตรงนี้
   const { seats = [] } = location.state || {};
@@ -186,4 +186,4 @@ const ReservationKaraoke = () => {
   );
 };
 
-export default ReservationKaraoke;
+export default ReservationMovies;

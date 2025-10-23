@@ -10,7 +10,7 @@ function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const jwt = useMemo(() => localStorage.getItem("token") || "", []);
+  const [jwt, setJwt] = useState(localStorage.getItem("token") || "");
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -32,12 +32,15 @@ function UserProfile() {
       }
     };
     fetchMe();
+    const onFocus = () => setJwt(localStorage.getItem("token") || "");
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [jwt]);
 
   const lastReservation = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("lastReservation"));
-    } catch (e) {
+    } catch  {
       return null;
     }
   }, []);
@@ -54,7 +57,7 @@ function UserProfile() {
     try {
       const locked = localStorage.getItem("bookingLockDate");
       return locked === todayKey;
-    } catch (e) {
+    } catch  {
       return false;
     }
   }, [todayKey]);
@@ -73,7 +76,7 @@ function UserProfile() {
     if (!res.isConfirmed) return;
     try {
       localStorage.removeItem("lastReservation");
-    } catch (e) { /* ignore */ }
+    } catch  { /* ignore */ }
     await Swal.fire({ title: "ยกเลิกสำเร็จ", icon: "success", confirmButtonColor: "#f472b6" });
     navigate("/details-reservation", { replace: true });
   };
@@ -170,4 +173,6 @@ function UserProfile() {
 }
 
 export default UserProfile;
+
+
 

@@ -51,6 +51,12 @@ const Navbar = () => {
             if (!res.ok) throw new Error(data.message || "Login failed");
 
             localStorage.setItem("token", data.token);
+            // Clear user-scoped cache to avoid showing previous account's data
+            try {
+              localStorage.removeItem("lastReservation");
+              localStorage.removeItem("bookingLockDate");
+              localStorage.removeItem("movieBookingLockDate");
+            } catch {}
             setJwt(data.token);
 
             // ดึงข้อมูล user ทันทีหลัง login
@@ -98,6 +104,11 @@ const Navbar = () => {
 
   const logout = () => {
     localStorage.removeItem("token");
+    try {
+      localStorage.removeItem("lastReservation");
+      localStorage.removeItem("bookingLockDate");
+      localStorage.removeItem("movieBookingLockDate");
+    } catch {}
     setJwt("");
     setMe(null);
     window.google?.accounts.id.disableAutoSelect();

@@ -13,7 +13,6 @@ import AddKaraokeRoom from "../pages/AddKaraokeRoom.jsx";
 import EditMovieSeat from "../pages/EditMovieSeat.jsx";
 import EditKaraokeRoom from "../pages/EditKaraokeRoom.jsx";
 import DetailsReservation from "../pages/DetailsReservation.jsx";
-import FormReservationKaraoke from "../pages/FormReservationKaraoke.jsx";
 import MainLayout from "../layouts/MainLayout.jsx";
 
 const router = createBrowserRouter([
