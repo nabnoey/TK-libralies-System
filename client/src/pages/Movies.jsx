@@ -7,7 +7,7 @@ function Movies() {
     <div className="bg-indigo-950 min-h-screen">
 
 
-      <div className="ml-5 mt-20 mb-10 text-white text-[30px]">
+      <div className="ml-5 mt-20 mb-10 text-white text-[30px] pt-25">
         <div className="text-center text-[50px] font-bold">
           รอบจองโรงหนัง
         </div>
