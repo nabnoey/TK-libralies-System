@@ -1,6 +1,6 @@
 import React from "react";
 import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom"; // ✅ เพิ่มตรงนี้
+import { Link } from "react-router-dom"; 
 
 function Dashboard() {
   return (
