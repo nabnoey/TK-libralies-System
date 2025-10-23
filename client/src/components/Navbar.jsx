@@ -14,6 +14,7 @@ const Navbar = () => {
     { name: "ภาพยนตร์", url: "/" },
     { name: "โรงภาพยนตร์", url: "/movies" },
     { name: "คาราโอเกะ", url: "/karaoke" },
+     { name: "ดูรอบการจอง", url: "/details-reservation" },
   ];
 
     if (me?.role === "admin") {

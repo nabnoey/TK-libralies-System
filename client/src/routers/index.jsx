@@ -13,6 +13,8 @@ import AddMovieSeat from "../pages/AddMovieSeat.jsx";
 import AddKaraokeRoom from "../pages/AddKaraokeRoom.jsx";
 import EditMovieSeat from "../pages/EditMovieSeat.jsx";
 import EditKaraokeRoom from "../pages/EditKaraokeRoom.jsx";
+import DetailsReservation from "../pages/DetailsReservation.jsx";
+import FormReservationKaraoke from "../pages/FormReservationKaraoke.jsx";
 
 import ReservationForm from "../pages/ReservationForm.jsx";
 const router = createBrowserRouter([
@@ -82,6 +84,15 @@ const router = createBrowserRouter([
   path: "/reservation-form",
   element: <ReservationForm />,
 },
+
+  {
+  path: "/details-reservation",
+  element: <DetailsReservation />,
+},
+{
+  path:"/reservation-karaoke/:roomId",
+  element:<FormReservationKaraoke />
+}
 
 
 ])

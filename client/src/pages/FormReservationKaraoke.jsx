@@ -1,19 +1,25 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom"; // ✅ แก้ตรงนี้
+import { useParams, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import Navbar from "../components/Navbar";
 
-const ReservationForm = () => {
-  const location = useLocation();
-  const navigate = useNavigate(); // ✅ เพิ่มตรงนี้
-  const { seats = [] } = location.state || {};
+function FormReservationKaraoke() {
+  const { roomId } = useParams(); // ✅ อ่าน roomId จาก URL
+  const navigate = useNavigate();
+  const id = parseInt(roomId);
 
-  const defaultTheater = "โรงภาพยนตร์ 1";
+
+  const roomName =
+    id === 1
+      ? "ห้องคาราโอเกะ 1"
+      : id === 2
+      ? "ห้องคาราโอเกะ 2"
+      : "ไม่ระบุห้อง";
 
   const [studentCodes, setStudentCodes] = useState([]);
   const [inputCode, setInputCode] = useState("");
 
-  // เมื่อกด Enter เพื่อเพิ่มรหัส
+  // เมื่อกด Enter เพื่อเพิ่มรหัสนักศึกษา
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -21,7 +27,6 @@ const ReservationForm = () => {
 
       if (!trimmed) return;
 
-      // ถ้ารหัสซ้ำ
       if (studentCodes.includes(trimmed)) {
         Swal.fire("รหัสนี้ถูกเพิ่มแล้ว!", "", "info");
         return;
@@ -32,50 +37,49 @@ const ReservationForm = () => {
     }
   };
 
-  // ลบรายการ
+  // ลบรหัสที่เพิ่ม
   const removeCode = (code) => {
     setStudentCodes((prev) => prev.filter((c) => c !== code));
   };
 
   // ยืนยันการจอง
-  const handleSubmit = (e) => {
-    e.preventDefault();
+ const handleSubmit = (e) => {
+  e.preventDefault();
 
-    if (studentCodes.length === 0) {
-      Swal.fire("กรุณากรอกรหัสนักศึกษาอย่างน้อย 1 รหัส", "", "warning");
-      return;
-    }
+  if (studentCodes.length === 0) {
+    Swal.fire("กรุณากรอกรหัสนักศึกษาอย่างน้อย 1 รหัส", "", "warning");
+    return;
+  }
 
-    Swal.fire({
-      title: "การจองเสร็จสมบูรณ์! 🎉",
-      icon: "success",
-      confirmButtonColor: "#f472b6",
-    }).then(() => {
-      // ส่งข้อมูลไปหน้า DetailsReservation
-      navigate("/details-reservation", {
-        state: {
-          theater: defaultTheater,
-          seats: seats,
-          studentCodes: studentCodes,
-        },
-      });
+  Swal.fire({
+    title: "จองห้องสำเร็จแล้ว! 🎉",
+    icon: "success",
+    confirmButtonColor: "#f472b6",
+  }).then(() => {
+    // ✅ เมื่อกด OK จะพาไปหน้า details-reservation
+    navigate("/details-reservation", {
+      state: {
+        theater: `ห้องคาราโอเกะ ${roomId}`,
+        seats: [`ห้องคาราโอเกะ ${roomId}`],
+        studentCodes: studentCodes,
+      },
     });
-  };
+  });
+};
+
 
   return (
     <div className="min-h-screen bg-pink-50">
       <Navbar />
+
       <div className="max-w-3xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold text-pink-600 text-center mb-8">
-          ฟอร์มการจองที่นั่ง
+          ฟอร์มการจองห้องคาราโอเกะ 🎤
         </h1>
 
         <div className="bg-white p-6 rounded-2xl shadow-md text-blue-950">
           <p className="mb-3">
-            <b>โรงภาพยนตร์:</b> {defaultTheater}
-          </p>
-          <p className="mb-3">
-            <b>ที่นั่งที่เลือก:</b> {seats.join(", ")}
+            <b>ห้องที่เลือก:</b> {roomName}
           </p>
           <p className="mb-5">
             <b>รหัสนักศึกษา:</b> พิมพ์แล้วกด Enter เพื่อเพิ่ม
@@ -92,7 +96,7 @@ const ReservationForm = () => {
               placeholder="กรอกรหัสนักศึกษาแล้วกด Enter"
             />
 
-            {/* รายการรหัสนักศึกษา */}
+            {/* รายการรหัสที่เพิ่ม */}
             {studentCodes.length > 0 ? (
               <ul className="mb-5 divide-y divide-gray-200">
                 {studentCodes.map((code, i) => (
@@ -131,6 +135,6 @@ const ReservationForm = () => {
       </div>
     </div>
   );
-};
+}
 
-export default ReservationForm;
+export default FormReservationKaraoke;

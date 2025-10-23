@@ -46,12 +46,10 @@ const SeatMap = () => {
   const [booked] = useState(["T5"]); 
   const [selected, setSelected] = useState([]);
 
-  const toggleSelect = (id) => {
-    if (booked.includes(id)) return;
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
-  };
+ const toggleSelect = (id) => {
+  if (booked.includes(id)) return;
+  setSelected((prev) => (prev[0] === id ? [] : [id]));
+};
 
   const confirmBooking = () => {
     if (selected.length === 0) {
