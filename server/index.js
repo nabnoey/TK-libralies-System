@@ -11,7 +11,7 @@ app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-const sequelize = require('./models/db'); // ที่คุณ authenticate ไว้
+const sequelize = require('./models/db'); 
 
 // Import models before sync
 require('./models/user.model');
@@ -30,9 +30,9 @@ app.get('/', (req, res) => {
 })
 
 const authRoutes = require("./routers/auth.router");
-const movieSeatRouter = require('./routers/movieSeat.router')
-const karaokeRoomRouter = require('./routers/karaokeRoom.router')
-const reservationRouter = require('./routers/reservation.router')
+const movieSeatRouter = require('./routers/movieSeat.router');
+const karaokeRoomRouter = require('./routers/karaokeRoom.router');
+const reservationRouter = require('./routers/reservation.router');
 const requireAuth = require("./middlewares/requireAuth");
 const User = require("./models/user.model");
 
