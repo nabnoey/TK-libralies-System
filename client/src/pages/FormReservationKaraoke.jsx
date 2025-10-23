@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
 
-function ReservationKaraoke() {
+function FormReservationKaraoke() {
   const { roomId } = useParams(); // ✅ อ่าน roomId จาก URL
   const navigate = useNavigate();
   const id = parseInt(roomId);
@@ -18,6 +18,27 @@ function ReservationKaraoke() {
 
   const [studentCodes, setStudentCodes] = useState([]);
   const [inputCode, setInputCode] = useState("");
+  // One reservation per day across movie and karaoke (client-side lock)
+  const todayKey = (() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  })();
+  React.useEffect(() => {
+    try {
+      const locked = localStorage.getItem("bookingLockDate");
+      if (locked === todayKey) {
+        Swal.fire({
+          title: "วันนี้คุณใช้สิทธิ์จองไปแล้ว",
+          text: "จำกัด 1 รอบต่อวัน ทั้งโรงหนังและคาราโอเกะ",
+          icon: "info",
+          confirmButtonColor: "#f472b6",
+        }).then(() => navigate("/details-reservation", { replace: true }));
+      }
+    } catch (e) { /* ignore */ }
+  }, []);
 
   // เมื่อกด Enter เพื่อเพิ่มรหัสนักศึกษา
   const handleKeyDown = (e) => {
@@ -45,6 +66,19 @@ function ReservationKaraoke() {
   // ยืนยันการจอง
  const handleSubmit = (e) => {
   e.preventDefault();
+  // Block if already booked today
+  try {
+    const locked = localStorage.getItem("bookingLockDate");
+    if (locked === todayKey) {
+      Swal.fire({
+        title: "วันนี้คุณใช้สิทธิ์จองไปแล้ว",
+        text: "จำกัด 1 รอบต่อวัน ทั้งโรงหนังและคาราโอเกะ",
+        icon: "error",
+        confirmButtonColor: "#f472b6",
+      }).then(() => navigate("/details-reservation", { replace: true }));
+      return;
+    }
+  } catch (e) { /* ignore */ }
 
   // ✅ ต้องมีอย่างน้อย 4 รหัสนักศึกษา
   if (studentCodes.length < 4) {
@@ -57,6 +91,18 @@ function ReservationKaraoke() {
     icon: "success",
     confirmButtonColor: "#f472b6",
   }).then(() => {
+    // Set daily lock and persist last reservation
+    try {
+      localStorage.setItem("bookingLockDate", todayKey);
+      const lastReservation = {
+        theater: roomName,
+        seats: [roomName],
+        studentCodes: studentCodes,
+        type: "karaoke",
+        savedAt: Date.now(),
+      };
+      localStorage.setItem("lastReservation", JSON.stringify(lastReservation));
+    } catch (e) { /* ignore */ }
     navigate("/details-reservation", {
       state: {
         theater: `ห้องคาราโอเกะ ${roomId}`,
@@ -110,6 +156,7 @@ function ReservationKaraoke() {
                       onClick={() => removeCode(code)}
                       className="text-red-500 hover:text-red-700"
                       title="ลบ"
+                      
                     >
                       <i className="fa-solid fa-trash"></i>
                     </button>
@@ -137,5 +184,4 @@ function ReservationKaraoke() {
   );
 }
 
-
-export default ReservationKaraoke;
+export default FormReservationKaraoke;

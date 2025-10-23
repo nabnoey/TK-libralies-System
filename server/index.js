@@ -13,7 +13,7 @@ app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-const sequelize = require('./models/db'); // ที่คุณ authenticate ไว้
+const sequelize = require('./models/db'); 
 
 // Import models before sync
 require('./models/user.model');

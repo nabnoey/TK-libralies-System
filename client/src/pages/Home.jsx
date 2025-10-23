@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Card from "../components/Card";
 import { getMovies } from "../services/movieService";
@@ -12,88 +11,81 @@ function Home() {
   }, []);
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-purple-950 to-pink-900 text-white font-sans">
+      {/* 🔹 Navbar */}
       <Navbar />
 
-      <div className="carousel w-full">
-        <div id="slide1" className="carousel-item relative w-full">
-          <img
-            src="https://img.daisyui.com/images/stock/photo-1625726411847-8cbb60cc71e6.webp"
-            className="w-full"
-          />
-          <div className="absolute left-5 right-5 top-1/2 flex -translate-y-1/2 transform justify-between">
-            <a href="#slide4" className="btn btn-circle">
-              ❮
-            </a>
-            <a href="#slide2" className="btn btn-circle">
-              ❯
-            </a>
-          </div>
-        </div>
-        <div id="slide2" className="carousel-item relative w-full">
-          <img
-            src="https://img.daisyui.com/images/stock/photo-1609621838510-5ad474b7d25d.webp"
-            className="w-full"
-          />
-          <div className="absolute left-5 right-5 top-1/2 flex -translate-y-1/2 transform justify-between">
-            <a href="#slide1" className="btn btn-circle">
-              ❮
-            </a>
-            <a href="#slide3" className="btn btn-circle">
-              ❯
-            </a>
-          </div>
-        </div>
-        <div id="slide3" className="carousel-item relative w-full">
-          <img
-            src="https://img.daisyui.com/images/stock/photo-1414694762283-acccc27bca85.webp"
-            className="w-full"
-          />
-          <div className="absolute left-5 right-5 top-1/2 flex -translate-y-1/2 transform justify-between">
-            <a href="#slide2" className="btn btn-circle">
-              ❮
-            </a>
-            <a href="#slide4" className="btn btn-circle">
-              ❯
-            </a>
-          </div>
-        </div>
-        <div id="slide4" className="carousel-item relative w-full">
-          <img
-            src="https://img.daisyui.com/images/stock/photo-1665553365602-b2fb8e5d1707.webp"
-            className="w-full"
-          />
-          <div className="absolute left-5 right-5 top-1/2 flex -translate-y-1/2 transform justify-between">
-            <a href="#slide3" className="btn btn-circle">
-              ❮
-            </a>
-            <a href="#slide1" className="btn btn-circle">
-              ❯
-            </a>
-          </div>
+      {/* 🔹 Hero Section */}
+      <div className="relative w-full h-[80vh] overflow-hidden mt-16">
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-purple-900/30 to-transparent"></div>
+
+        <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-6">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-pink-300 drop-shadow-lg mb-4 animate-fadeIn">
+            🎬 ยินดีต้อนรับสู่ NPRU Booking
+          </h1>
+          <p className="text-gray-200 text-lg md:text-xl max-w-2xl leading-relaxed mb-6">
+            จองภาพยนตร์และห้องคาราโอเกะได้ง่าย ๆ สะดวก รวดเร็ว พร้อมดีลสุดพิเศษสำหรับนักศึกษา!
+          </p>
+         
         </div>
       </div>
 
+      
 
-    <div className=" bg-blue-950 w-50 h-15 justify-center mt-10 ml-175 rounded-lg">
-    <div class="text-white text-center pt-2.5 text-[25px]">รอบจอง</div>
-</div>
+      {/* 🔹 ภาพยนตร์แนะนำ Section */}
+      <section className="mt-20 px-8">
+        <h2 className="text-4xl font-extrabold text-center text-pink-300 mb-3 pt-15">
+          ภาพยนตร์แนะนำประจำสัปดาห์ 🍿
+        </h2>
+        <p className="text-center text-gray-300 mb-12">
+          รวมภาพยนตร์ยอดนิยม ที่ได้รับกระแสตอบรับจากผู้ชมทั่วประเทศ
+        </p>
 
-      <div className="movies ml-30 ">
-        <div className="pt-20 text-[30px] bold-5">ภาพยนต์แนะนำ</div>
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 justify-center items-center">
+          {movies.map((movie) => (
+            <div
+              key={movie.id}
+              className="relative bg-gradient-to-b from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg transform hover:scale-[1.03] transition-all duration-300"
+            >
+              <img
+                src={movie.image}
+                alt={movie.title}
+                className="w-full h-72 object-cover opacity-90 hover:opacity-100 transition"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+              <div className="absolute bottom-0 p-5">
+                <h3 className="text-xl font-bold text-white mb-1">
+                  {movie.title}
+                </h3>
+                <p className="text-gray-300 text-sm mb-3 line-clamp-2">
+                  {movie.description}
+                </p>
+                <a
+                  href={`/details/${movie.id}`}
+                  className="inline-block bg-pink-500 hover:bg-pink-600 text-white text-sm font-semibold px-4 py-2 rounded-full transition"
+                >
+                  ดูรายละเอียด
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <div className="pt-20 grid grid-cols-3 gap-10 mr-35 ml-55 mb-20">
-        {movies.map((movie) => (
-          <Card
-            key={movie.id}
-            id={movie.id}
-            image={movie.image}
-            title={movie.title}
-            description={movie.description}
-          />
-        ))}
-      </div>
+     
+      {/* 🔹 Animation */}
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 1s ease-in-out;
+          }
+        `}
+      </style>
     </div>
   );
 }
