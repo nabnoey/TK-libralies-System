@@ -126,31 +126,51 @@ function UserProfile() {
                   )}
                 </div>
 
-                <div className="bg-base-200 rounded-xl p-4">
-                  <div className="font-semibold mb-2">การจองล่าสุด</div>
-                  {lastReservation ? (
-                    <div>
-                      <div>สถานที่: {lastReservation.theater}</div>
-                      <div>รายละเอียด: {(lastReservation.seats || []).join(", ")}</div>
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={() => navigate("/details-reservation")}
-                          className="btn btn-sm bg-pink-500 text-white"
-                        >
-                          ดูรายละเอียด
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          className="btn btn-sm bg-red-500 text-white"
-                        >
-                          ยกเลิกการจอง
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-gray-700">ยังไม่มีข้อมูลการจอง</div>
-                  )}
-                </div>
+           <div className="bg-base-200 rounded-xl p-4">
+  <div className="font-semibold mb-2">การจองล่าสุด</div>
+  {lastReservation ? (
+    <div>
+      {/* ตรวจประเภทการจอง */}
+      <div>
+        <b>สถานที่:</b> {lastReservation.theater || "-"}
+      </div>
+
+      {lastReservation.theater?.includes("คาราโอเกะ") ? (
+        <div>
+          <b>ห้องที่จอง:</b>{" "}
+          {(lastReservation.seats || [])
+            .filter(Boolean)
+            .join(", ") || "ไม่พบข้อมูล"}
+        </div>
+      ) : (
+        <div>
+          <b>ที่นั่งที่จอง:</b>{" "}
+          {(lastReservation.seats || [])
+            .filter(Boolean)
+            .join(", ") || "ไม่พบข้อมูล"}
+        </div>
+      )}
+
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => navigate("/details-reservation")}
+          className="btn btn-sm bg-pink-500 text-white"
+        >
+          ดูรายละเอียด
+        </button>
+        <button
+          onClick={handleCancel}
+          className="btn btn-sm bg-red-500 text-white"
+        >
+          ยกเลิกการจอง
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="text-gray-700">ยังไม่มีข้อมูลการจอง</div>
+  )}
+</div>
+
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
