@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useNavigate, useParams } from "react-router-dom"; 
-import Navbar from "../components/Navbar.jsx";
+
 
 export default function EditMovieSeat() {
   const { seatId } = useParams(); 
@@ -75,7 +75,7 @@ export default function EditMovieSeat() {
 
   return (
     <div className="min-h-screen bg-base-200">
-      <Navbar />
+
 
       <div className="max-w-2xl mx-auto my-12 p-8 card bg-base-100 shadow-xl border border-gray-300 rounded-box">
         <h2 className="text-center text-3xl font-extrabold mb-10 text-primary">

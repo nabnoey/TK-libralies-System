@@ -1,5 +1,4 @@
 import React from "react";
-import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
 
 function Karaoke() {
@@ -22,7 +21,7 @@ function Karaoke() {
 
   return (
     <div className="bg-indigo-950 min-h-screen">
-      <Navbar />
+
 
       {/* หัวข้อหน้า */}
       <div className="text-center text-white pt-20 mb-10">

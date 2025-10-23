@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import Swal from "sweetalert2";
+
 
 function DetailsReservation() {
   const location = useLocation();
@@ -9,12 +10,26 @@ function DetailsReservation() {
   // รับค่าจากการ navigate มาจากทั้งโรงหนังและคาราโอเกะ
   const { theater, seats, studentCodes } = location.state || {};
 
-  // Redirect to rounds listing if opened without data
+  // Persist state if present; otherwise try to load from localStorage
   useEffect(() => {
-    if (!(theater && seats && studentCodes)) {
-      navigate("/details-reservation", { replace: true });
+    if (location.state && theater && seats && studentCodes) {
+      try {
+        localStorage.setItem(
+          "lastReservation",
+          JSON.stringify({ theater, seats, studentCodes, savedAt: Date.now() })
+        );
+      } catch { /* ignore persist errors */ }
+      return;
     }
-  }, [theater, seats, studentCodes, navigate]);
+    try {
+      const stored = JSON.parse(localStorage.getItem("lastReservation"));
+      if (stored && stored.theater && stored.seats && stored.studentCodes) {
+        navigate("/details-reservation", { state: stored, replace: true });
+        return;
+      }
+    } catch { /* ignore load errors */ }
+    // no stored data -> keep user on this page and show empty state
+  }, [location.state, theater, seats, studentCodes, navigate]);
 
   // ตรวจว่าข้อมูลเป็นของอะไร
   const isKaraoke =
@@ -22,7 +37,7 @@ function DetailsReservation() {
 
   return (
     <div className="min-h-screen bg-pink-50">
-      <Navbar />
+      
       <div className="max-w-2xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold text-pink-600 text-center mb-8">
           {isKaraoke ? "รายละเอียดการจองห้องคาราโอเกะ 🎤" : "รายละเอียดการจองโรงภาพยนตร์ 🎬"}
@@ -56,7 +71,32 @@ function DetailsReservation() {
               </ul>
             </div>
 
-            <div className="text-center mt-6">
+            <div className="flex gap-3 justify-center mt-6">
+              <button
+                onClick={async () => {
+                  const res = await Swal.fire({
+                    title: "ยืนยันยกเลิกการจอง",
+                    text: "คุณต้องการยกเลิกการจองของคุณหรือไม่?",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#ef4444",
+                    cancelButtonColor: "#6b7280",
+                    confirmButtonText: "ยืนยัน",
+                    cancelButtonText: "ยกเลิก",
+                  });
+                  if (!res.isConfirmed) return;
+                  try { localStorage.removeItem("lastReservation"); } catch { /* ignore */ }
+                  await Swal.fire({
+                    title: "ยกเลิกสำเร็จ",
+                    icon: "success",
+                    confirmButtonColor: "#f472b6",
+                  });
+                  navigate("/details-reservation", { replace: true });
+                }}
+                className="bg-red-500 text-white px-6 py-2 rounded-xl hover:bg-red-600 transition"
+              >
+                ยกเลิกการจอง
+              </button>
               <button
                 onClick={() => navigate("/")}
                 className="bg-pink-500 text-white px-6 py-2 rounded-xl hover:bg-pink-600 transition"
@@ -66,9 +106,23 @@ function DetailsReservation() {
             </div>
           </div>
         ) : (
-          <p className="text-center text-gray-600">
-            ❌ ไม่พบข้อมูลการจอง กรุณากลับไปกรอกฟอร์มอีกครั้ง
-          </p>
+          <div className="text-center text-blue-950">
+            <p className="text-gray-600 mb-6">❌ คุณยังไม่ได้จองในขณะนี้</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => navigate("/movies")}
+                className="btn bg-pink-500 text-white rounded-xl hover:bg-pink-600"
+              >
+                ไปจองรอบโรงหนัง
+              </button>
+              <button
+                onClick={() => navigate("/karaoke")}
+                className="btn bg-indigo-500 text-white rounded-xl hover:bg-indigo-600"
+              >
+                ไปจองห้องคาราโอเกะ
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

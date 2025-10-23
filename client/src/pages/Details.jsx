@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import { getMovies } from "../services/movieService";
 
 function Details() {
@@ -29,7 +28,7 @@ function Details() {
 
   return (
     <div className="bg-blue-950 min-h-screen text-white">
-      <Navbar />
+    
 
       <div className="hero bg-base-200 min-h-screen text-black">
         <div className="hero-content flex-col lg:flex-row border-2 rounded-xl shadow-2xl bg-white max-w-5xl">

@@ -1,11 +1,9 @@
 import React from "react";
-import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom"; 
 
 function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-sky-100 to-purple-100">
-      <Navbar />
 
       <div className="container mx-auto px-6 py-12">
         <div className="text-center mb-12">

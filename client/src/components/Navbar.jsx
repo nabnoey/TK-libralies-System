@@ -185,9 +185,7 @@ const Navbar = () => {
                     โปรไฟล์
                   </Link>
                 </li>
-                <li>
-                  <a>ตั้งค่า</a>
-                </li>
+              
                 <li>
                   <a onClick={logout}>ออกจากระบบ</a>
                 </li>
