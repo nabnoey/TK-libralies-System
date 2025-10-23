@@ -1,8 +1,8 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
 import Card from "../components/Card";
 import { getMovies } from "../services/movieService";
+
 
 function Home() {
   const [movies, setMovies] = useState([]);
@@ -12,8 +12,7 @@ function Home() {
   }, []);
 
   return (
-    <div>
-      <Navbar />
+    <div className="border-y-indigo-950">
 
       <div className="carousel w-full">
         <div id="slide1" className="carousel-item relative w-full">
@@ -76,7 +75,7 @@ function Home() {
 
 
     <div className=" bg-blue-950 w-50 h-15 justify-center mt-10 ml-175 rounded-lg">
-    <div class="text-white text-center pt-2.5 text-[25px]">รอบจอง</div>
+    <div className="text-white text-center pt-2.5 text-[25px]">รอบจอง</div>
 </div>
 
       <div className="movies ml-30 ">
@@ -94,6 +93,8 @@ function Home() {
           />
         ))}
       </div>
+
+
     </div>
   );
 }

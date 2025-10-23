@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import Navbar from "../components/Navbar";
+
 
 function FormReservationKaraoke() {
   const { roomId } = useParams(); // ✅ อ่าน roomId จาก URL
@@ -18,6 +18,27 @@ function FormReservationKaraoke() {
 
   const [studentCodes, setStudentCodes] = useState([]);
   const [inputCode, setInputCode] = useState("");
+  // One reservation per day across movie and karaoke (client-side lock)
+  const todayKey = (() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  })();
+  React.useEffect(() => {
+    try {
+      const locked = localStorage.getItem("bookingLockDate");
+      if (locked === todayKey) {
+        Swal.fire({
+          title: "วันนี้คุณใช้สิทธิ์จองไปแล้ว",
+          text: "จำกัด 1 รอบต่อวัน ทั้งโรงหนังและคาราโอเกะ",
+          icon: "info",
+          confirmButtonColor: "#f472b6",
+        }).then(() => navigate("/details-reservation", { replace: true }));
+      }
+    } catch (e) { /* ignore */ }
+  }, []);
 
   // เมื่อกด Enter เพื่อเพิ่มรหัสนักศึกษา
   const handleKeyDown = (e) => {
@@ -45,9 +66,23 @@ function FormReservationKaraoke() {
   // ยืนยันการจอง
  const handleSubmit = (e) => {
   e.preventDefault();
+  // Block if already booked today
+  try {
+    const locked = localStorage.getItem("bookingLockDate");
+    if (locked === todayKey) {
+      Swal.fire({
+        title: "วันนี้คุณใช้สิทธิ์จองไปแล้ว",
+        text: "จำกัด 1 รอบต่อวัน ทั้งโรงหนังและคาราโอเกะ",
+        icon: "error",
+        confirmButtonColor: "#f472b6",
+      }).then(() => navigate("/details-reservation", { replace: true }));
+      return;
+    }
+  } catch (e) { /* ignore */ }
 
-  if (studentCodes.length === 0) {
-    Swal.fire("กรุณากรอกรหัสนักศึกษาอย่างน้อย 1 รหัส", "", "warning");
+  // ✅ ต้องมีอย่างน้อย 4 รหัสนักศึกษา
+  if (studentCodes.length < 4) {
+    Swal.fire("กรุณากรอกรหัสนักศึกษาอย่างน้อย 4 รหัส", "", "warning");
     return;
   }
 
@@ -56,7 +91,18 @@ function FormReservationKaraoke() {
     icon: "success",
     confirmButtonColor: "#f472b6",
   }).then(() => {
-    // ✅ เมื่อกด OK จะพาไปหน้า details-reservation
+    // Set daily lock and persist last reservation
+    try {
+      localStorage.setItem("bookingLockDate", todayKey);
+      const lastReservation = {
+        theater: roomName,
+        seats: [roomName],
+        studentCodes: studentCodes,
+        type: "karaoke",
+        savedAt: Date.now(),
+      };
+      localStorage.setItem("lastReservation", JSON.stringify(lastReservation));
+    } catch (e) { /* ignore */ }
     navigate("/details-reservation", {
       state: {
         theater: `ห้องคาราโอเกะ ${roomId}`,
@@ -70,7 +116,7 @@ function FormReservationKaraoke() {
 
   return (
     <div className="min-h-screen bg-pink-50">
-      <Navbar />
+
 
       <div className="max-w-3xl mx-auto py-10 px-6">
         <h1 className="text-3xl font-bold text-pink-600 text-center mb-8">
@@ -110,6 +156,7 @@ function FormReservationKaraoke() {
                       onClick={() => removeCode(code)}
                       className="text-red-500 hover:text-red-700"
                       title="ลบ"
+                      
                     >
                       <i className="fa-solid fa-trash"></i>
                     </button>

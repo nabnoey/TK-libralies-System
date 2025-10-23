@@ -68,7 +68,7 @@ const SeatMap = () => {
       cancelButtonColor: "#6b7280",
     }).then((result) => {
       if (result.isConfirmed) {
-        navigate("/reservation-form", { state: { seats: selected } });
+        navigate("/reservation-movies", { state: { seats: selected } });
       }
     });
   };
