@@ -27,14 +27,41 @@ const Reservation = sequelize.define("Reservation", {
     reservationDate: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        comment: 'Date of reservation (without time)'
+        defaultValue: DataTypes.NOW,
+        comment: 'Date of reservation (without time) - defaults to today'
+    },
+    numberOfPeople: {
+        type: DataTypes.VIRTUAL,
+        get() {
+            // คำนวณจาก friendEmails.length + 1 (ผู้จอง)
+            const friendEmails = this.getDataValue('friendEmails') || []
+            return friendEmails.length + 1
+        },
+        comment: 'Number of people in the reservation (auto-calculated from friendEmails + 1)'
+    },
+    friendEmails: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: false,
+        defaultValue: [],
+        validate: {
+            isValidLength(value) {
+                const totalPeople = value.length + 1 // +1 for the user who books
+                if (totalPeople < 4 || totalPeople > 6) {
+                    throw new Error('จำนวนคนทั้งหมด (รวมคุณ) ต้องอยู่ระหว่าง 4-6 คน (ระบุ email เพื่อน 3-5 คน)')
+                }
+            }
+        },
+        comment: 'Array of friend emails (must be registered users, need 3-5 friends)'
     },
     timeSlot: {
         type: DataTypes.STRING,
-        allowNull: false,
-        comment: 'Time slot for reservation (1-hour slots: "09:00-10:00", "10:00-11:00", ..., "15:00-16:00")',
+        allowNull: true, // สำหรับ movie เท่านั้น, karaoke ไม่ต้องใช้
+        comment: 'Time slot for movie reservation only (1-hour slots: "09:00-10:00", "10:00-11:00", ..., "15:00-16:00")',
         validate: {
             isValidTimeSlot(value) {
+                // ถ้าเป็น null หรือ undefined ให้ผ่าน (สำหรับ karaoke)
+                if (!value) return
+
                 // ตรวจสอบรูปแบบ HH:MM-HH:MM
                 const timeSlotRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]-([0-1][0-9]|2[0-3]):[0-5][0-9]$/
                 if (!timeSlotRegex.test(value)) {
@@ -60,6 +87,21 @@ const Reservation = sequelize.define("Reservation", {
                 }
             }
         }
+    },
+    queueNumber: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Queue number for karaoke reservations (1 = currently using, 2+ = waiting in queue)'
+    },
+    startedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'When the user started using the karaoke room (only for karaoke)'
+    },
+    endedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'When the user finished using the karaoke room (only for karaoke)'
     },
     status: {
         type: DataTypes.ENUM('pending', 'awaiting_checkin', 'confirmed', 'cancelled', 'completed'),

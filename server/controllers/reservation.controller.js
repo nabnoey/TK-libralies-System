@@ -1,5 +1,7 @@
 const { Reservation, User, KaraokeRoom, MovieSeat } = require('../models/associations')
 const { Op } = require('sequelize')
+const { createNotification } = require('./notification.controller')
+const { getBangkokTime, getTodayDate, getCurrentHour, isAfterTime, addMinutes } = require('../utils/dateHelper')
 
 // Helper: สร้าง time slots ทั้งหมดในช่วง 09:00-15:00 (เวลาเริ่มต้นที่จองได้)
 const generateAllStartTimes = () => {
@@ -15,8 +17,40 @@ const extractStartTime = (timeSlot) => {
     return timeSlot.split('-')[0]
 }
 
-// ตรวจสอบว่า user จองในวันนี้ไปแล้วหรือยัง
-const checkUserDailyReservation = async (userId, reservationDate) => {
+// Helper: อัพเดทสถานะห้อง/ที่นั่ง
+const updateRoomStatus = async (reservationType, itemId, newStatus, reservationId = null) => {
+    try {
+        if (reservationType === 'karaoke') {
+            await KaraokeRoom.update(
+                {
+                    currentStatus: newStatus,
+                    currentReservationId: reservationId
+                },
+                {
+                    where: { karaokeId: itemId }
+                }
+            )
+            console.log(`[UPDATE ROOM STATUS] Karaoke #${itemId} -> ${newStatus} (Reservation: ${reservationId || 'none'})`)
+        } else if (reservationType === 'movie') {
+            await MovieSeat.update(
+                {
+                    currentStatus: newStatus,
+                    currentReservationId: reservationId
+                },
+                {
+                    where: { movieId: itemId }
+                }
+            )
+            console.log(`[UPDATE ROOM STATUS] Movie Seat #${itemId} -> ${newStatus} (Reservation: ${reservationId || 'none'})`)
+        }
+    } catch (error) {
+        console.error('[UPDATE ROOM STATUS ERROR]', error)
+    }
+}
+
+// ตรวจสอบว่า user มีการจองที่ยังไม่เสร็จสิ้นหรือไม่ (ทุกประเภท)
+const checkUserActiveReservation = async (userId, reservationDate) => {
+    // เช็คว่ามีการจองที่ยังไม่ completed (ทุกประเภท)
     const existingReservation = await Reservation.findOne({
         where: {
             userId,
@@ -24,68 +58,65 @@ const checkUserDailyReservation = async (userId, reservationDate) => {
             status: {
                 [Op.in]: ['pending', 'awaiting_checkin', 'confirmed']
             }
+        },
+        include: [
+            {
+                model: KaraokeRoom,
+                as: 'karaokeRoom',
+                required: false
+            },
+            {
+                model: MovieSeat,
+                as: 'movieSeat',
+                required: false
+            }
+        ]
+    })
+    return existingReservation
+}
+
+// ตรวจสอบว่า user มีการจองประเภทเดียวกันในวันเดียวกันแล้วหรือไม่ (รวมทั้ง completed)
+const checkUserDailyReservationLimit = async (userId, reservationDate, reservationType) => {
+    const existingReservation = await Reservation.findOne({
+        where: {
+            userId,
+            reservationDate,
+            reservationType,
+            status: {
+                [Op.in]: ['pending', 'awaiting_checkin', 'confirmed', 'completed']
+            }
         }
     })
     return existingReservation
 }
 
-// ตรวจสอบว่า room/seat ว่างในช่วงเวลานั้นหรือไม่
-const checkItemAvailability = async (reservationType, itemId, reservationDate, timeSlot) => {
-    const existingReservation = await Reservation.findOne({
+// ตรวจสอบว่า user เคย cancel การจองประเภทนี้ในวันนี้ไปแล้วหรือไม่
+const checkUserCancelledReservation = async (userId, reservationDate, reservationType) => {
+    const cancelledReservation = await Reservation.findOne({
         where: {
-            reservationType,
-            itemId,
+            userId,
             reservationDate,
-            timeSlot,
-            status: {
-                [Op.in]: ['pending', 'awaiting_checkin', 'confirmed']
-            }
+            reservationType,
+            status: 'cancelled'
         }
     })
-    return !existingReservation // return true if available
-}
-
-// Helper: แปลงเวลาเริ่มต้น (HH:MM) เป็น timeSlot (HH:MM-HH:MM) โดยบวก 1 ชั่วโมง
-const calculateTimeSlot = (startTime) => {
-    // ตรวจสอบรูปแบบ HH:MM
-    const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/
-    if (!timeRegex.test(startTime)) {
-        throw new Error('รูปแบบเวลาไม่ถูกต้อง ต้องเป็น "HH:MM" เช่น "09:30"')
-    }
-
-    const [hour, minute] = startTime.split(':').map(Number)
-
-    // ตรวจสอบว่าเวลาเริ่มต้นอยู่ในช่วง 09:00-15:59
-    if (hour < 9 || hour > 15) {
-        throw new Error('เวลาเริ่มต้นต้องอยู่ในช่วง 09:00-15:59 เท่านั้น')
-    }
-
-    // ถ้าเลือก 15:00-15:59 จะจบที่ 16:00-16:59 ซึ่งเกินเวลาปิด
-    if (hour === 15 && minute > 0) {
-        throw new Error('เวลาเริ่มต้นหลังสุดคือ 15:00 เพื่อให้จบพอดี 16:00')
-    }
-
-    // คำนวณเวลาสิ้นสุด (บวก 1 ชั่วโมง)
-    let endHour = hour + 1
-    const endMinute = minute
-
-    const startTimeFormatted = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-    const endTimeFormatted = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`
-
-    return `${startTimeFormatted}-${endTimeFormatted}`
+    return cancelledReservation
 }
 
 // สร้างการจอง
 const createReservation = async (req, res) => {
     try {
-        const { reservationType, itemId, reservationDate, timeSlot: startTime } = req.body
+        const { reservationType, itemId, friendEmails } = req.body
         const userId = req.user.uid // จาก middleware authentication
 
+        // ใช้วันที่ปัจจุบันตาม timezone Bangkok เป็น default
+        const reservationDate = req.body.reservationDate || getTodayDate()
+
         // ตรวจสอบว่ามีข้อมูลครบหรือไม่
-        if (!reservationType || !itemId || !reservationDate || !startTime) {
+        if (!reservationType || !itemId || !friendEmails) {
             return res.status(400).json({
                 success: false,
-                message: 'กรุณากรอกข้อมูลให้ครบถ้วน'
+                message: 'กรุณากรอกข้อมูลให้ครบถ้วน (reservationType, itemId, friendEmails)'
             })
         }
 
@@ -97,28 +128,111 @@ const createReservation = async (req, res) => {
             })
         }
 
-        // แปลงเวลาเริ่มต้นเป็น timeSlot (เช่น "09:30" -> "09:30-10:30")
-        let timeSlot
-        try {
-            timeSlot = calculateTimeSlot(startTime)
-        } catch (error) {
+        // ตรวจสอบว่า friendEmails เป็น array หรือไม่
+        if (!Array.isArray(friendEmails)) {
             return res.status(400).json({
                 success: false,
-                message: error.message
+                message: 'friendEmails ต้องเป็น array'
             })
         }
 
-        // ตรวจสอบว่า user จองในวันนี้ไปแล้วหรือยัง
-        const existingReservation = await checkUserDailyReservation(userId, reservationDate)
-        if (existingReservation) {
+        // ตรวจสอบจำนวนคนทั้งหมด (รวมผู้จอง)
+        const totalPeople = friendEmails.length + 1 // +1 = ผู้จอง
+        if (totalPeople < 4 || totalPeople > 6) {
             return res.status(400).json({
                 success: false,
-                message: 'คุณได้จองคิวในวันนี้ไปแล้ว สามารถจองได้วันละ 1 รอบเท่านั้น'
+                message: `จำนวนคนทั้งหมด (รวมคุณ) ต้องอยู่ระหว่าง 4-6 คน (ปัจจุบัน: ${totalPeople} คน - ต้องระบุ email เพื่อน 3-5 คน)`
             })
         }
 
-        // ตรวจสอบว่า room/seat ที่ต้องการจองมีอยู่จริงหรือไม่
+        // ตรวจสอบว่าเพื่อนทุกคนเป็น user ที่ลงทะเบียนแล้ว
+        const friends = await User.findAll({
+            where: {
+                email: {
+                    [Op.in]: friendEmails
+                }
+            },
+            attributes: ['userId', 'email', 'name']
+        })
+
+        // ตรวจสอบว่าพบ user ครบทุกคนหรือไม่
+        if (friends.length !== friendEmails.length) {
+            const foundEmails = friends.map(f => f.email)
+            const notFoundEmails = friendEmails.filter(email => !foundEmails.includes(email))
+            return res.status(400).json({
+                success: false,
+                message: 'พบ email ที่ไม่ได้ลงทะเบียน',
+                notFoundEmails
+            })
+        }
+
+        // ตรวจสอบว่าผู้จองไม่ได้ใส่ email ตัวเองใน friendEmails
+        const currentUserEmail = req.user.email
+        if (friendEmails.includes(currentUserEmail)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ไม่ต้องใส่ email ของคุณเองใน friendEmails'
+            })
+        }
+
+        // ตรวจสอบว่า user มีการจองที่ยังไม่เสร็จสิ้นหรือไม่ (ทุกประเภท)
+        const activeReservation = await checkUserActiveReservation(userId, reservationDate)
+        if (activeReservation) {
+            const existingType = activeReservation.reservationType === 'karaoke' ? 'คาราโอเกะ' : 'หนัง'
+            const existingItemName = activeReservation.reservationType === 'karaoke'
+                ? activeReservation.karaokeRoom?.name || `ห้อง #${activeReservation.itemId}`
+                : activeReservation.movieSeat?.name || `ที่นั่ง #${activeReservation.itemId}`
+
+            return res.status(400).json({
+                success: false,
+                message: `คุณมีการจอง${existingType}ที่ยังไม่เสร็จสิ้น (${existingItemName}, สถานะ: ${activeReservation.status}) กรุณารอให้การจองปัจจุบันเสร็จสิ้นก่อนจึงจะสามารถจองอันใหม่ได้`,
+                existingReservation: {
+                    reservationId: activeReservation.reservationId,
+                    type: existingType,
+                    itemName: existingItemName,
+                    status: activeReservation.status,
+                    queueNumber: activeReservation.queueNumber,
+                    reservationDate: activeReservation.reservationDate
+                }
+            })
+        }
+
+        // ตรวจสอบว่า user มีการจองประเภทเดียวกันในวันนี้แล้วหรือไม่ (รวมทั้ง completed)
+        const dailyReservation = await checkUserDailyReservationLimit(userId, reservationDate, reservationType)
+        if (dailyReservation) {
+            const typeName = reservationType === 'karaoke' ? 'คาราโอเกะ' : 'หนัง'
+            return res.status(400).json({
+                success: false,
+                message: `คุณสามารถจอง${typeName}ได้เพียง 1 รอบต่อวันเท่านั้น (คุณมีการจองแล้วในวันนี้ - สถานะ: ${dailyReservation.status})`,
+                existingReservation: {
+                    reservationId: dailyReservation.reservationId,
+                    status: dailyReservation.status,
+                    queueNumber: dailyReservation.queueNumber
+                }
+            })
+        }
+
+        // ตรวจสอบว่าเคย cancel การจองประเภทนี้ในวันนี้ไปแล้วหรือไม่
+        const cancelledReservation = await checkUserCancelledReservation(userId, reservationDate, reservationType)
+        if (cancelledReservation) {
+            return res.status(400).json({
+                success: false,
+                message: `คุณได้ยกเลิกการจอง${reservationType === 'karaoke' ? 'คาราโอเกะ' : 'หนัง'}ในวันนี้ไปแล้ว ไม่สามารถจองซ้ำได้`
+            })
+        }
+
+        // === สำหรับ KARAOKE ===
         if (reservationType === 'karaoke') {
+            // ตรวจสอบว่าปิดรับจองหรือยัง (ปิดรับหลัง 15:00)
+            const today = getTodayDate()
+            if (reservationDate === today && isAfterTime(15, 0)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ปิดรับจองแล้ว (หลัง 15:00 น.)'
+                })
+            }
+
+            // ตรวจสอบว่าห้องมีอยู่จริงหรือไม่
             const karaokeRoom = await KaraokeRoom.findByPk(itemId)
             if (!karaokeRoom) {
                 return res.status(404).json({
@@ -126,7 +240,71 @@ const createReservation = async (req, res) => {
                     message: 'ไม่พบห้องคาราโอเกะที่ระบุ'
                 })
             }
-        } else if (reservationType === 'movie') {
+
+            // ตรวจสอบว่าห้องเปิดใช้งานหรือไม่
+            if (!karaokeRoom.status) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ห้องนี้ปิดให้บริการ'
+                })
+            }
+
+            // หาคิวปัจจุบันในห้องนี้ (เฉพาะที่ยังไม่เสร็จสิ้น)
+            const existingQueue = await Reservation.findAll({
+                where: {
+                    reservationType: 'karaoke',
+                    itemId,
+                    reservationDate,
+                    status: {
+                        [Op.in]: ['pending', 'awaiting_checkin', 'confirmed']
+                    }
+                },
+                order: [['queueNumber', 'ASC']]
+            })
+
+            // หา queueNumber ถัดไป
+            const nextQueueNumber = existingQueue.length > 0
+                ? Math.max(...existingQueue.map(r => r.queueNumber)) + 1
+                : 1
+
+            // สร้างการจอง
+            const reservation = await Reservation.create({
+                userId,
+                reservationType,
+                itemId,
+                reservationDate,
+                friendEmails,
+                timeSlot: null, // karaoke ไม่ใช้ timeSlot
+                queueNumber: nextQueueNumber,
+                status: 'pending'
+            })
+
+            return res.status(201).json({
+                success: true,
+                message: nextQueueNumber === 1
+                    ? 'จองสำเร็จ! คุณอยู่คิวที่ 1 รอ admin อนุมัติ'
+                    : `จองสำเร็จ! คุณอยู่คิวที่ ${nextQueueNumber}`,
+                data: {
+                    ...reservation.toJSON(),
+                    queuePosition: nextQueueNumber,
+                    peopleAhead: nextQueueNumber - 1,
+                    friends: friends.map(f => ({ email: f.email, name: f.name }))
+                }
+            })
+        }
+
+        // === สำหรับ MOVIE ===
+        if (reservationType === 'movie') {
+            // ตรวจสอบว่าปิดรับจองหรือยัง (ปิดรับหลัง 14:00)
+            const today = getTodayDate()
+            if (reservationDate === today && isAfterTime(14, 0)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ปิดรับจองแล้ว (หลัง 14:00 น.)'
+                })
+            }
+
+            // ตรวจสอบว่าที่นั่งมีอยู่จริงหรือไม่
             const movieSeat = await MovieSeat.findByPk(itemId)
             if (!movieSeat) {
                 return res.status(404).json({
@@ -134,32 +312,58 @@ const createReservation = async (req, res) => {
                     message: 'ไม่พบที่นั่งหนังที่ระบุ'
                 })
             }
-        }
 
-        // ตรวจสอบว่า room/seat ว่างในช่วงเวลานั้นหรือไม่
-        const isAvailable = await checkItemAvailability(reservationType, itemId, reservationDate, timeSlot)
-        if (!isAvailable) {
-            return res.status(400).json({
-                success: false,
-                message: 'ช่วงเวลานี้ถูกจองแล้ว กรุณาเลือกช่วงเวลาอื่น'
+            // ตรวจสอบว่าที่นั่งเปิดใช้งานหรือไม่
+            if (!movieSeat.status) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ที่นั่งนี้ปิดให้บริการ'
+                })
+            }
+
+            // หาคิวปัจจุบันในที่นั่งนี้ (เฉพาะที่ยังไม่เสร็จสิ้น)
+            const existingQueue = await Reservation.findAll({
+                where: {
+                    reservationType: 'movie',
+                    itemId,
+                    reservationDate,
+                    status: {
+                        [Op.in]: ['pending', 'awaiting_checkin', 'confirmed']
+                    }
+                },
+                order: [['queueNumber', 'ASC']]
+            })
+
+            // หา queueNumber ถัดไป
+            const nextQueueNumber = existingQueue.length > 0
+                ? Math.max(...existingQueue.map(r => r.queueNumber)) + 1
+                : 1
+
+            // สร้างการจอง
+            const reservation = await Reservation.create({
+                userId,
+                reservationType,
+                itemId,
+                reservationDate,
+                friendEmails,
+                timeSlot: null, // movie ไม่ใช้ timeSlot แล้ว
+                queueNumber: nextQueueNumber,
+                status: 'pending'
+            })
+
+            return res.status(201).json({
+                success: true,
+                message: nextQueueNumber === 1
+                    ? 'จองสำเร็จ! คุณอยู่คิวที่ 1 รอ admin อนุมัติ'
+                    : `จองสำเร็จ! คุณอยู่คิวที่ ${nextQueueNumber}`,
+                data: {
+                    ...reservation.toJSON(),
+                    queuePosition: nextQueueNumber,
+                    peopleAhead: nextQueueNumber - 1,
+                    friends: friends.map(f => ({ email: f.email, name: f.name }))
+                }
             })
         }
-
-        // สร้างการจอง
-        const reservation = await Reservation.create({
-            userId,
-            reservationType,
-            itemId,
-            reservationDate,
-            timeSlot,
-            status: 'pending'
-        })
-
-        return res.status(201).json({
-            success: true,
-            message: 'จองคิวสำเร็จ',
-            data: reservation
-        })
     } catch (error) {
         console.error('Error creating reservation:', error)
         return res.status(500).json({
@@ -358,8 +562,46 @@ const cancelReservation = async (req, res) => {
             })
         }
 
+        // เก็บข้อมูลก่อนยกเลิก
+        const wasActiveReservation = ['awaiting_checkin', 'confirmed'].includes(reservation.status)
+        const reservationType = reservation.reservationType
+        const itemId = reservation.itemId
+        const oldStatus = reservation.status
+
         reservation.status = 'cancelled'
         await reservation.save()
+
+        // ถ้าการจองนี้กำลังใช้งานอยู่ (awaiting_checkin หรือ confirmed) ให้อัพเดทสถานะห้องเป็น available
+        if (wasActiveReservation) {
+            await updateRoomStatus(reservationType, itemId, 'available', null)
+        }
+
+        // ส่ง notification แจ้งว่าการจองถูกยกเลิก
+        let itemName = ''
+        if (reservationType === 'karaoke') {
+            const room = await KaraokeRoom.findByPk(itemId)
+            itemName = room ? room.name : `#${itemId}`
+        } else {
+            const seat = await MovieSeat.findByPk(itemId)
+            itemName = seat ? seat.name : `#${itemId}`
+        }
+
+        const roomType = reservationType === 'karaoke' ? 'คาราโอเกะ' : 'หนัง'
+        await createNotification({
+            userId: reservation.userId,
+            reservationId: reservation.reservationId,
+            type: 'reservation_cancelled',
+            title: 'การจองถูกยกเลิก',
+            message: `คุณได้ยกเลิกการจอง${roomType} ${itemName} (คิวที่ ${reservation.queueNumber}) แล้ว`,
+            metadata: {
+                queueNumber: reservation.queueNumber,
+                roomType: reservationType,
+                itemId: itemId,
+                itemName,
+                reason: 'user_cancelled',
+                previousStatus: oldStatus
+            }
+        })
 
         return res.status(200).json({
             success: true,
@@ -406,21 +648,82 @@ const updateReservationStatus = async (req, res) => {
             })
         }
 
+        // ป้องกันการอัปเดต status ของการจองที่ถูก cancelled แล้ว
+        if (reservation.status === 'cancelled') {
+            return res.status(400).json({
+                success: false,
+                message: 'ไม่สามารถอัปเดตสถานะของการจองที่ถูกยกเลิกแล้ว'
+            })
+        }
+
         // ถ้า admin เปลี่ยนจาก pending -> awaiting_checkin (approve)
         if (reservation.status === 'pending' && status === 'awaiting_checkin') {
-            const now = new Date()
-            const checkInDeadline = new Date(now.getTime() + 5 * 60 * 1000) // +5 นาที
+            // ตรวจสอบว่าห้อง/ที่นั่งนี้มีการจองที่ยังไม่เสร็จสิ้นอยู่หรือไม่
+            // (status: awaiting_checkin หรือ confirmed)
+            const activeReservation = await Reservation.findOne({
+                where: {
+                    reservationType: reservation.reservationType,
+                    itemId: reservation.itemId,
+                    reservationDate: reservation.reservationDate,
+                    status: {
+                        [Op.in]: ['awaiting_checkin', 'confirmed'] // มีคนรออยู่หรือกำลังใช้งาน
+                    },
+                    reservationId: {
+                        [Op.ne]: reservation.reservationId // ไม่รวมตัวเอง
+                    }
+                },
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['userId', 'name', 'email']
+                    }
+                ]
+            })
+
+            // ถ้ามีคนใช้งานอยู่แล้วหรือรอ check-in อยู่ ไม่ให้อนุมัติ
+            if (activeReservation) {
+                const roomType = reservation.reservationType === 'karaoke' ? 'ห้องคาราโอเกะ' : 'ที่นั่งหนัง'
+                const statusText = activeReservation.status === 'confirmed'
+                    ? 'กำลังใช้งานอยู่'
+                    : 'รอ check-in อยู่'
+
+                return res.status(400).json({
+                    success: false,
+                    message: `${roomType}นี้${statusText} (คิวที่ ${activeReservation.queueNumber} - ${activeReservation.user?.name || 'Unknown'}) กรุณารอให้เสร็จสิ้น (completed) ก่อน`,
+                    data: {
+                        currentQueue: activeReservation.queueNumber,
+                        currentUser: activeReservation.user,
+                        currentStatus: activeReservation.status,
+                        requestedQueue: reservation.queueNumber
+                    }
+                })
+            }
+
+            const now = getBangkokTime().toDate()
+            const checkInDeadline = addMinutes(now, 5) // +5 นาที
 
             reservation.status = status
             reservation.approvedAt = now
             reservation.checkInDeadline = checkInDeadline
             await reservation.save()
 
-            // TODO: ส่ง notification ไปหา user
-            console.log(`[NOTIFICATION] ส่งการแจ้งเตือนไปยัง User ID: ${reservation.userId}`)
-            console.log(`การจอง #${reservation.reservationId} ได้รับการอนุมัติแล้ว`)
-            console.log(`กรุณา check-in ภายใน 5 นาที (ก่อน ${checkInDeadline.toLocaleString('th-TH')})`)
-            console.log(`หากไม่ check-in ทันเวลา การจองจะถูกยกเลิกอัตโนมัติ`)
+            // อัพเดทสถานะห้อง/ที่นั่ง เป็น awaiting_checkin
+            await updateRoomStatus(reservation.reservationType, reservation.itemId, 'awaiting_checkin', reservation.reservationId)
+
+            // ส่ง notification ไปหา user
+            const roomType = reservation.reservationType === 'karaoke' ? 'คาราโอเกะ' : 'ที่นั่งหนัง'
+            await createNotification({
+                userId: reservation.userId,
+                reservationId: reservation.reservationId,
+                type: 'reservation_approved',
+                title: 'การจองได้รับการอนุมัติ',
+                message: `การจอง${roomType}ของคุณได้รับการอนุมัติแล้ว กรุณา check-in ภายใน 5 นาที`,
+                metadata: {
+                    queueNumber: reservation.queueNumber,
+                    checkInDeadline: checkInDeadline.toISOString()
+                }
+            })
 
             // เริ่ม timer สำหรับ auto-cancel
             scheduleAutoCancellation(reservation.reservationId, checkInDeadline)
@@ -435,9 +738,181 @@ const updateReservationStatus = async (req, res) => {
             })
         }
 
+        // ถ้า admin พยายามเปลี่ยนเป็น confirmed (ข้ามขั้นตอน check-in)
+        if (status === 'confirmed' && reservation.status !== 'awaiting_checkin') {
+            return res.status(400).json({
+                success: false,
+                message: 'ไม่สามารถเปลี่ยนเป็น confirmed ได้โดยตรง ต้อง approve เป็น awaiting_checkin และให้ user check-in ก่อน'
+            })
+        }
+
+        // ถ้า admin พยายามเปลี่ยนจาก awaiting_checkin -> confirmed (force check-in)
+        if (status === 'confirmed' && reservation.status === 'awaiting_checkin') {
+            // ตรวจสอบว่าห้อง/ที่นั่งนี้มีการจองที่ confirmed อยู่แล้วหรือไม่
+            const confirmedReservation = await Reservation.findOne({
+                where: {
+                    reservationType: reservation.reservationType,
+                    itemId: reservation.itemId,
+                    reservationDate: reservation.reservationDate,
+                    status: 'confirmed',
+                    reservationId: {
+                        [Op.ne]: reservation.reservationId
+                    }
+                },
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['userId', 'name', 'email']
+                    }
+                ]
+            })
+
+            if (confirmedReservation) {
+                const roomType = reservation.reservationType === 'karaoke' ? 'ห้องคาราโอเกะ' : 'ที่นั่งหนัง'
+                return res.status(400).json({
+                    success: false,
+                    message: `${roomType}นี้มีคนกำลังใช้งานอยู่แล้ว (คิวที่ ${confirmedReservation.queueNumber} - ${confirmedReservation.user?.name || 'Unknown'}) ไม่สามารถ force check-in ได้`,
+                    data: {
+                        currentQueue: confirmedReservation.queueNumber,
+                        currentUser: confirmedReservation.user,
+                        requestedQueue: reservation.queueNumber
+                    }
+                })
+            }
+
+            // Force check-in (admin ทำแทน user)
+            reservation.status = status
+            reservation.checkedInAt = getBangkokTime().toDate()
+            await reservation.save()
+
+            // อัพเดทสถานะห้อง/ที่นั่ง เป็น in_use
+            await updateRoomStatus(reservation.reservationType, reservation.itemId, 'in_use', reservation.reservationId)
+
+            return res.status(200).json({
+                success: true,
+                message: 'Force check-in สำเร็จ (admin ทำแทน user)',
+                data: reservation
+            })
+        }
+
+        // ถ้า admin เปลี่ยนเป็น completed (user ออกจากห้องแล้ว)
+        if (status === 'completed' && reservation.status === 'confirmed') {
+            reservation.status = status
+            reservation.endedAt = getBangkokTime().toDate()
+            await reservation.save()
+
+            // อัพเดทสถานะห้อง/ที่นั่ง เป็น available
+            await updateRoomStatus(reservation.reservationType, reservation.itemId, 'available', null)
+
+            // หาคิวถัดไปในห้อง/ที่นั่งเดียวกัน
+            const nextInQueue = await Reservation.findOne({
+                where: {
+                    reservationType: reservation.reservationType,
+                    itemId: reservation.itemId,
+                    reservationDate: reservation.reservationDate,
+                    queueNumber: reservation.queueNumber + 1,
+                    status: {
+                        [Op.in]: ['pending', 'awaiting_checkin']
+                    }
+                },
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['userId', 'name', 'email']
+                    }
+                ]
+            })
+
+            // ถ้ามีคิวถัดไป ส่ง notification
+            if (nextInQueue) {
+                const roomType = reservation.reservationType === 'karaoke' ? 'ห้องคาราโอเกะ' : 'ที่นั่งหนัง'
+                let itemName = ''
+
+                // ดึงชื่อห้อง/ที่นั่ง
+                if (reservation.reservationType === 'karaoke') {
+                    const room = await KaraokeRoom.findByPk(reservation.itemId)
+                    itemName = room ? room.name : `#${reservation.itemId}`
+                } else {
+                    const seat = await MovieSeat.findByPk(reservation.itemId)
+                    itemName = seat ? seat.name : `#${reservation.itemId}`
+                }
+
+                await createNotification({
+                    userId: nextInQueue.userId,
+                    reservationId: nextInQueue.reservationId,
+                    type: 'queue_ready',
+                    title: 'ถึงคิวของคุณแล้ว!',
+                    message: `${roomType} ${itemName} ว่างแล้ว รอ admin อนุมัติการจองของคุณ (คิวที่ ${nextInQueue.queueNumber})`,
+                    metadata: {
+                        queueNumber: nextInQueue.queueNumber,
+                        roomType: reservation.reservationType,
+                        itemId: reservation.itemId,
+                        itemName
+                    }
+                })
+
+                console.log(`[QUEUE NOTIFICATION] แจ้งเตือนคิว #${nextInQueue.queueNumber} (User ID: ${nextInQueue.userId})`)
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: nextInQueue
+                    ? 'อัพเดทสถานะสำเร็จ และแจ้งเตือนคิวถัดไปแล้ว'
+                    : 'อัพเดทสถานะสำเร็จ (ไม่มีคิวถัดไป)',
+                data: reservation
+            })
+        }
+
+        // ถ้าเปลี่ยนเป็น completed แต่ไม่ได้เป็น confirmed
+        if (status === 'completed' && reservation.status !== 'confirmed') {
+            return res.status(400).json({
+                success: false,
+                message: 'ไม่สามารถเปลี่ยนเป็น completed ได้ ต้องเป็น confirmed ก่อน'
+            })
+        }
+
         // กรณีอื่นๆ เปลี่ยนสถานะปกติ
+        const oldStatus = reservation.status
         reservation.status = status
         await reservation.save()
+
+        // ถ้า admin เปลี่ยนเป็น cancelled ให้ส่ง notification และอัพเดทสถานะห้อง
+        if (status === 'cancelled') {
+            // อัพเดทสถานะห้อง/ที่นั่งเป็น available ถ้าการจองนั้นกำลัง active
+            const wasActive = ['awaiting_checkin', 'confirmed'].includes(oldStatus)
+            if (wasActive) {
+                await updateRoomStatus(reservation.reservationType, reservation.itemId, 'available', null)
+            }
+
+            // ส่ง notification แจ้ง user
+            let itemName = ''
+            if (reservation.reservationType === 'karaoke') {
+                const room = await KaraokeRoom.findByPk(reservation.itemId)
+                itemName = room ? room.name : `#${reservation.itemId}`
+            } else {
+                const seat = await MovieSeat.findByPk(reservation.itemId)
+                itemName = seat ? seat.name : `#${reservation.itemId}`
+            }
+
+            const roomType = reservation.reservationType === 'karaoke' ? 'คาราโอเกะ' : 'หนัง'
+            await createNotification({
+                userId: reservation.userId,
+                reservationId: reservation.reservationId,
+                type: 'reservation_cancelled',
+                title: 'การจองถูกยกเลิกโดย Admin',
+                message: `การจอง${roomType} ${itemName} (คิวที่ ${reservation.queueNumber}) ถูกยกเลิกโดยผู้ดูแลระบบ`,
+                metadata: {
+                    queueNumber: reservation.queueNumber,
+                    roomType: reservation.reservationType,
+                    itemId: reservation.itemId,
+                    itemName,
+                    reason: 'admin_cancelled',
+                    previousStatus: oldStatus
+                }
+            })
+        }
 
         return res.status(200).json({
             success: true,
@@ -480,7 +955,7 @@ const checkInReservation = async (req, res) => {
             })
         }
 
-        const now = new Date()
+        const now = getBangkokTime().toDate()
 
         // ตรวจสอบว่าเกิน deadline หรือไม่
         if (now > reservation.checkInDeadline) {
@@ -496,6 +971,9 @@ const checkInReservation = async (req, res) => {
         reservation.status = 'confirmed'
         reservation.checkedInAt = now
         await reservation.save()
+
+        // อัพเดทสถานะห้อง/ที่นั่ง เป็น in_use
+        await updateRoomStatus(reservation.reservationType, reservation.itemId, 'in_use', reservation.reservationId)
 
         return res.status(200).json({
             success: true,
@@ -552,13 +1030,45 @@ const autoCancelReservation = async (reservationId) => {
 
         // ยกเลิกเฉพาะถ้ายังเป็น awaiting_checkin
         if (reservation.status === 'awaiting_checkin') {
+            const reservationType = reservation.reservationType
+            const itemId = reservation.itemId
+
             reservation.status = 'cancelled'
             await reservation.save()
 
+            // อัพเดทสถานะห้อง/ที่นั่ง เป็น available
+            await updateRoomStatus(reservationType, itemId, 'available', null)
+
+            // ดึงชื่อห้อง/ที่นั่ง
+            let itemName = ''
+            if (reservationType === 'karaoke') {
+                const room = await KaraokeRoom.findByPk(itemId)
+                itemName = room ? room.name : `#${itemId}`
+            } else {
+                const seat = await MovieSeat.findByPk(itemId)
+                itemName = seat ? seat.name : `#${itemId}`
+            }
+
+            // ส่ง notification แจ้ง user ว่าการจองถูกยกเลิกอัตโนมัติ
+            const roomType = reservationType === 'karaoke' ? 'คาราโอเกะ' : 'หนัง'
+            await createNotification({
+                userId: reservation.userId,
+                reservationId: reservation.reservationId,
+                type: 'reservation_cancelled',
+                title: 'การจองถูกยกเลิกอัตโนมัติ',
+                message: `การจอง${roomType} ${itemName} (คิวที่ ${reservation.queueNumber}) ถูกยกเลิกเนื่องจากไม่ได้ check-in ภายใน 5 นาที`,
+                metadata: {
+                    queueNumber: reservation.queueNumber,
+                    roomType: reservationType,
+                    itemId: itemId,
+                    itemName,
+                    reason: 'timeout'
+                }
+            })
+
             console.log(`[AUTO-CANCEL] ยกเลิกการจอง #${reservationId} เนื่องจากไม่ได้ check-in ภายใน 5 นาที`)
             console.log(`User: ${reservation.user?.name} (ID: ${reservation.userId})`)
-
-            // TODO: ส่ง notification แจ้ง user ว่าการจองถูกยกเลิก
+            console.log(`[AUTO-CANCEL] ส่ง notification แจ้งเตือนการยกเลิกแล้ว`)
         }
     } catch (error) {
         console.error(`[AUTO-CANCEL] Error cancelling reservation #${reservationId}:`, error)
@@ -613,7 +1123,7 @@ const getAvailableTimeSlots = async (req, res) => {
     }
 }
 
-// ดูห้อง Karaoke ทั้งหมดพร้อมสถานะการจอง
+// ดูห้อง Karaoke ทั้งหมดพร้อมสถานะการจองและคิว
 const getKaraokeRoomsWithStatus = async (req, res) => {
     try {
         const { date } = req.query
@@ -631,7 +1141,7 @@ const getKaraokeRoomsWithStatus = async (req, res) => {
             order: [['karaokeId', 'ASC']]
         })
 
-        // ดึงการจองทั้งหมดในวันที่ระบุ
+        // ดึงการจองทั้งหมดในวันที่ระบุ (เรียงตาม queue number)
         const reservations = await Reservation.findAll({
             where: {
                 reservationType: 'karaoke',
@@ -646,7 +1156,8 @@ const getKaraokeRoomsWithStatus = async (req, res) => {
                     as: 'user',
                     attributes: ['userId', 'name', 'email']
                 }
-            ]
+            ],
+            order: [['queueNumber', 'ASC']]
         })
 
         // จัดกลุ่มการจองตาม itemId (karaokeId)
@@ -660,17 +1171,46 @@ const getKaraokeRoomsWithStatus = async (req, res) => {
 
         // รวมข้อมูลห้องกับการจอง
         const roomsWithStatus = rooms.map(room => {
-            const roomReservations = reservationsByRoom[room.karaokeId] || []
+            const roomQueue = reservationsByRoom[room.karaokeId] || []
+
+            // หาคนที่กำลังใช้ห้อง (queue number 1 และ status confirmed)
+            const currentUser = roomQueue.find(r => r.queueNumber === 1 && r.status === 'confirmed')
+
+            // คิวที่รอ
+            const waitingQueue = roomQueue.filter(r => r.queueNumber > 1 || (r.queueNumber === 1 && r.status !== 'confirmed'))
+
             return {
                 ...room.toJSON(),
-                reservations: roomReservations,
-                isBooked: roomReservations.length > 0
+                currentUser: currentUser ? {
+                    reservationId: currentUser.reservationId,
+                    user: currentUser.user,
+                    queueNumber: currentUser.queueNumber,
+                    startedAt: currentUser.startedAt,
+                    status: currentUser.status
+                } : null,
+                waitingQueue: waitingQueue.map(r => ({
+                    reservationId: r.reservationId,
+                    user: r.user,
+                    queueNumber: r.queueNumber,
+                    status: r.status
+                })),
+                totalQueue: roomQueue.length,
+                isAvailable: !currentUser, // ว่างถ้าไม่มีคนใช้งาน
+                waitingCount: waitingQueue.length
             }
         })
 
+        // เช็คว่าปิดรับจองหรือยัง
+        const today = getTodayDate()
+        const isBookingClosed = (date === today && isAfterTime(15, 0))
+
         return res.status(200).json({
             success: true,
-            data: roomsWithStatus
+            data: {
+                rooms: roomsWithStatus,
+                isBookingClosed,
+                bookingClosesAt: '15:00'
+            }
         })
     } catch (error) {
         console.error('Error getting karaoke rooms with status:', error)
@@ -681,7 +1221,7 @@ const getKaraokeRoomsWithStatus = async (req, res) => {
     }
 }
 
-// ดูที่นั่งหนังทั้งหมดพร้อมสถานะการจอง
+// ดูที่นั่งหนังทั้งหมดพร้อมสถานะการจองและคิว
 const getMovieSeatsWithStatus = async (req, res) => {
     try {
         const { date } = req.query
@@ -699,7 +1239,7 @@ const getMovieSeatsWithStatus = async (req, res) => {
             order: [['movieId', 'ASC']]
         })
 
-        // ดึงการจองทั้งหมดในวันที่ระบุ
+        // ดึงการจองทั้งหมดในวันที่ระบุ (เรียงตาม queue number)
         const reservations = await Reservation.findAll({
             where: {
                 reservationType: 'movie',
@@ -714,7 +1254,8 @@ const getMovieSeatsWithStatus = async (req, res) => {
                     as: 'user',
                     attributes: ['userId', 'name', 'email']
                 }
-            ]
+            ],
+            order: [['queueNumber', 'ASC']]
         })
 
         // จัดกลุ่มการจองตาม itemId (movieId)
@@ -728,17 +1269,46 @@ const getMovieSeatsWithStatus = async (req, res) => {
 
         // รวมข้อมูลที่นั่งกับการจอง
         const seatsWithStatus = seats.map(seat => {
-            const seatReservations = reservationsBySeat[seat.movieId] || []
+            const seatQueue = reservationsBySeat[seat.movieId] || []
+
+            // หาคนที่กำลังใช้ที่นั่ง (queue number 1 และ status confirmed)
+            const currentUser = seatQueue.find(r => r.queueNumber === 1 && r.status === 'confirmed')
+
+            // คิวที่รอ
+            const waitingQueue = seatQueue.filter(r => r.queueNumber > 1 || (r.queueNumber === 1 && r.status !== 'confirmed'))
+
             return {
                 ...seat.toJSON(),
-                reservations: seatReservations,
-                isBooked: seatReservations.length > 0
+                currentUser: currentUser ? {
+                    reservationId: currentUser.reservationId,
+                    user: currentUser.user,
+                    queueNumber: currentUser.queueNumber,
+                    startedAt: currentUser.startedAt,
+                    status: currentUser.status
+                } : null,
+                waitingQueue: waitingQueue.map(r => ({
+                    reservationId: r.reservationId,
+                    user: r.user,
+                    queueNumber: r.queueNumber,
+                    status: r.status
+                })),
+                totalQueue: seatQueue.length,
+                isAvailable: !currentUser, // ว่างถ้าไม่มีคนใช้งาน
+                waitingCount: waitingQueue.length
             }
         })
 
+        // เช็คว่าปิดรับจองหรือยัง
+        const today = getTodayDate()
+        const isBookingClosed = (date === today && isAfterTime(14, 0))
+
         return res.status(200).json({
             success: true,
-            data: seatsWithStatus
+            data: {
+                seats: seatsWithStatus,
+                isBookingClosed,
+                bookingClosesAt: '14:00'
+            }
         })
     } catch (error) {
         console.error('Error getting movie seats with status:', error)
@@ -833,6 +1403,160 @@ const getRoomSeatDetails = async (req, res) => {
     }
 }
 
+// ดูคิวของห้อง Karaoke แต่ละห้อง
+const getKaraokeRoomQueue = async (req, res) => {
+    try {
+        const { roomId, date } = req.query
+
+        if (!roomId || !date) {
+            return res.status(400).json({
+                success: false,
+                message: 'กรุณาระบุ roomId และ date'
+            })
+        }
+
+        // ตรวจสอบว่าห้องมีอยู่จริง
+        const room = await KaraokeRoom.findByPk(roomId)
+        if (!room) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบห้องคาราโอเกะที่ระบุ'
+            })
+        }
+
+        // ดึงคิวทั้งหมดของห้องนี้ในวันที่ระบุ
+        const queue = await Reservation.findAll({
+            where: {
+                reservationType: 'karaoke',
+                itemId: roomId,
+                reservationDate: date,
+                status: {
+                    [Op.in]: ['pending', 'awaiting_checkin', 'confirmed']
+                }
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['userId', 'name', 'email']
+                }
+            ],
+            order: [['queueNumber', 'ASC']]
+        })
+
+        // แยกคนที่กำลังใช้ห้องกับคนที่รอคิว
+        const currentUser = queue.find(r => r.queueNumber === 1 && r.status === 'confirmed')
+        const waitingQueue = queue.filter(r => r.queueNumber > 1 || (r.queueNumber === 1 && r.status !== 'confirmed'))
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                room: room.toJSON(),
+                currentUser: currentUser ? {
+                    reservationId: currentUser.reservationId,
+                    user: currentUser.user,
+                    queueNumber: currentUser.queueNumber,
+                    startedAt: currentUser.startedAt,
+                    status: currentUser.status
+                } : null,
+                waitingQueue: waitingQueue.map(r => ({
+                    reservationId: r.reservationId,
+                    user: r.user,
+                    queueNumber: r.queueNumber,
+                    status: r.status,
+                    createdAt: r.createdAt
+                })),
+                totalInQueue: queue.length,
+                isRoomAvailable: !currentUser,
+                waitingCount: waitingQueue.length
+            }
+        })
+    } catch (error) {
+        console.error('Error getting karaoke room queue:', error)
+        return res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการดึงข้อมูลคิว'
+        })
+    }
+}
+
+// ดูคิวของที่นั่งหนังแต่ละที่นั่ง
+const getMovieSeatQueue = async (req, res) => {
+    try {
+        const { seatId, date } = req.query
+
+        if (!seatId || !date) {
+            return res.status(400).json({
+                success: false,
+                message: 'กรุณาระบุ seatId และ date'
+            })
+        }
+
+        // ตรวจสอบว่าที่นั่งมีอยู่จริง
+        const seat = await MovieSeat.findByPk(seatId)
+        if (!seat) {
+            return res.status(404).json({
+                success: false,
+                message: 'ไม่พบที่นั่งหนังที่ระบุ'
+            })
+        }
+
+        // ดึงคิวทั้งหมดของที่นั่งนี้ในวันที่ระบุ
+        const queue = await Reservation.findAll({
+            where: {
+                reservationType: 'movie',
+                itemId: seatId,
+                reservationDate: date,
+                status: {
+                    [Op.in]: ['pending', 'awaiting_checkin', 'confirmed']
+                }
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['userId', 'name', 'email']
+                }
+            ],
+            order: [['queueNumber', 'ASC']]
+        })
+
+        // แยกคนที่กำลังใช้ที่นั่งกับคนที่รอคิว
+        const currentUser = queue.find(r => r.queueNumber === 1 && r.status === 'confirmed')
+        const waitingQueue = queue.filter(r => r.queueNumber > 1 || (r.queueNumber === 1 && r.status !== 'confirmed'))
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                seat: seat.toJSON(),
+                currentUser: currentUser ? {
+                    reservationId: currentUser.reservationId,
+                    user: currentUser.user,
+                    queueNumber: currentUser.queueNumber,
+                    startedAt: currentUser.startedAt,
+                    status: currentUser.status
+                } : null,
+                waitingQueue: waitingQueue.map(r => ({
+                    reservationId: r.reservationId,
+                    user: r.user,
+                    queueNumber: r.queueNumber,
+                    status: r.status,
+                    createdAt: r.createdAt
+                })),
+                totalInQueue: queue.length,
+                isSeatAvailable: !currentUser,
+                waitingCount: waitingQueue.length
+            }
+        })
+    } catch (error) {
+        console.error('Error getting movie seat queue:', error)
+        return res.status(500).json({
+            success: false,
+            message: 'เกิดข้อผิดพลาดในการดึงข้อมูลคิว'
+        })
+    }
+}
+
 module.exports = {
     createReservation,
     getUserReservations,
@@ -844,5 +1568,7 @@ module.exports = {
     getAvailableTimeSlots,
     getKaraokeRoomsWithStatus,
     getMovieSeatsWithStatus,
-    getRoomSeatDetails
+    getRoomSeatDetails,
+    getKaraokeRoomQueue,
+    getMovieSeatQueue
 }
