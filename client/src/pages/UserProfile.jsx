@@ -37,7 +37,7 @@ function UserProfile() {
   const lastReservation = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("lastReservation"));
-    } catch (e) {
+    } catch  {
       return null;
     }
   }, []);
@@ -54,7 +54,7 @@ function UserProfile() {
     try {
       const locked = localStorage.getItem("bookingLockDate");
       return locked === todayKey;
-    } catch (e) {
+    } catch  {
       return false;
     }
   }, [todayKey]);
@@ -73,7 +73,7 @@ function UserProfile() {
     if (!res.isConfirmed) return;
     try {
       localStorage.removeItem("lastReservation");
-    } catch (e) { /* ignore */ }
+    } catch  { /* ignore */ }
     await Swal.fire({ title: "ยกเลิกสำเร็จ", icon: "success", confirmButtonColor: "#f472b6" });
     navigate("/details-reservation", { replace: true });
   };
