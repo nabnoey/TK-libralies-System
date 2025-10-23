@@ -79,17 +79,19 @@ async function registerAdmin(email, password, name) {
     password: hashedPassword,
     name: name || email.split("@")[0],
     provider: "local",
-    role: "admin",
-    lastLoginAt: new Date(),
+    role: "admin"
   });
 
-  const token = signJwt(user);
-  return { token, user: {
-    userId: user.userId,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  }};
+  // ไม่ส่ง token กลับไป ให้ admin ต้อง login ใหม่
+  return {
+    message: "Admin account created successfully. Please login.",
+    user: {
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    }
+  };
 }
 
 async function loginAdmin(email, password) {
