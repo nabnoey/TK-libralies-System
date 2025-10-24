@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getMovies } from "../services/movieService";
 
-const API_BASE = import.meta.env.VITE_API_BASE;
+const API_BASE = import.meta.env.VITE_AUTH_BASE;
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const Navbar = () => {
@@ -13,21 +13,26 @@ const Navbar = () => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
+  const baseItems = [
     { name: "หน้าแรก", url: "/" },
     { name: "โรงภาพยนตร์", url: "/movies" },
     { name: "คาราโอเกะ", url: "/karaoke" },
     { name: "ดูรอบการจอง", url: "/details-reservation" },
   ];
 
-  if (me?.role === "admin") {
-    menuItems.push({ name: "Dashboard", url: "/dashboard" });
-  }
+  const menuItems =
+    me?.role === "admin"
+      ? [
+          baseItems.find((i) => i.url === "/") || { name: "Home", url: "/" },
+          { name: "Dashboard", url: "/dashboard" },
+        ]
+      : baseItems;
 
-  // โหลด Google Auth
+  // ✅ รอให้ Google Auth โหลดก่อน
   const waitForGoogle = () =>
     new Promise((resolve) => {
       if (window.google?.accounts?.id) return resolve();
@@ -40,7 +45,7 @@ const Navbar = () => {
       setTimeout(() => clearInterval(id), 10000);
     });
 
-  // ดึงข้อมูลผู้ใช้
+  // ✅ ดึงข้อมูลผู้ใช้จาก Token
   const fetchMe = async (token) => {
     try {
       const res = await fetch(`${API_BASE}/me`, {
@@ -53,7 +58,7 @@ const Navbar = () => {
     }
   };
 
-  // ดึงข้อมูลหนังทั้งหมด (สำหรับ Search)
+  // ✅ โหลดรายชื่อภาพยนตร์ (ไว้ใช้ค้นหา)
   useEffect(() => {
     (async () => {
       try {
@@ -65,6 +70,7 @@ const Navbar = () => {
     })();
   }, []);
 
+  // ✅ ตั้งค่า Google Login
   useEffect(() => {
     (async () => {
       await waitForGoogle();
@@ -91,6 +97,7 @@ const Navbar = () => {
         },
       });
 
+      // ✅ แสดงปุ่ม Login ถ้ายังไม่มี token
       if (btnRef.current && !jwt) {
         window.google.accounts.id.renderButton(btnRef.current, {
           theme: "outline",
@@ -104,13 +111,16 @@ const Navbar = () => {
     if (jwt) fetchMe(jwt);
   }, [jwt]);
 
+  // ✅ ออกจากระบบ
   const logout = () => {
     localStorage.removeItem("token");
     setJwt("");
     setMe(null);
     window.google?.accounts.id.disableAutoSelect();
+    navigate("/"); // กลับหน้าแรก
   };
 
+  // ✅ ค้นหาภาพยนตร์
   const filteredMovies = results.filter((m) =>
     (m?.title || "").toLowerCase().includes(query.toLowerCase())
   );
@@ -224,7 +234,7 @@ const Navbar = () => {
                 </div>
               </div>
 
-              {/* dropdown */}
+              {/* dropdown โปรไฟล์ */}
               <div className="absolute right-0 mt-3 z-50 pb-6">
                 <ul className="hidden group-hover:block w-56 bg-white text-gray-700 rounded-xl shadow-lg overflow-hidden pointer-events-auto transition-all duration-200 delay-200">
                   <li className="p-3 border-b border-gray-200 bg-gray-50">

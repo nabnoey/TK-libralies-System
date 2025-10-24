@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-
+import KaraokeService from "../services/karaoke.services";
 
 export default function AddKaraokeRoom() {
   const [seatImage, setSeatImage] = useState(null);
@@ -18,58 +18,72 @@ export default function AddKaraokeRoom() {
   };
 
   const handleAddSeat = async () => {
+  
     const result = await Swal.fire({
-      title: "คุณต้องการเพิ่มห้องคาราโอกะสำหรับร้องคาราโอเกะหรือไม่?",
+      title: "คุณต้องการเพิ่มห้องคาราโอเกะหรือไม่?",
       showCancelButton: true,
       confirmButtonText: "ยืนยัน",
       cancelButtonText: "ยกเลิก",
       icon: "question",
-      customClass: { 
-        popup: 'bg-white text-gray-800',
-        title: 'text-gray-900',
-        confirmButton: 'btn btn-primary',
-        cancelButton: 'btn btn-ghost',
-      }
+      customClass: {
+        popup: "bg-white text-gray-800",
+        title: "text-gray-900",
+        confirmButton: "btn btn-primary",
+        cancelButton: "btn btn-ghost",
+      },
     });
 
-    if (result.isConfirmed) {
+    if (!result.isConfirmed) return;
+
+    try {
+  
+      await KaraokeService.createKaraoke({
+        image: seatImage,
+        status: seatStatus,
+      });
+
+      // ✅ 3. แจ้งเตือนเมื่อสำเร็จ
       await Swal.fire({
         title: "เพิ่มห้องคาราโอเกะสำเร็จแล้ว",
         icon: "success",
         customClass: {
-          popup: 'bg-white text-gray-800',
-          title: 'text-gray-900',
-        }
+          popup: "bg-white text-gray-800",
+          title: "text-gray-900",
+        },
       });
 
+      // ✅ 4. ล้างข้อมูล
       setSeatImage(null);
       setSeatStatus("available");
-      
-      navigate("/karaoke"); 
+
+      // ✅ 5. กลับไปหน้า /karaoke
+      navigate("/karaoke");
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        title: "เพิ่มห้องคาราโอเกะไม่สำเร็จ",
+        text: error?.response?.data?.message || "กรุณาลองใหม่อีกครั้ง",
+        icon: "error",
+      });
     }
   };
 
   return (
-  
-    <div className="min-h-screen bg-base-200"> 
-
-      
+    <div className="min-h-screen bg-base-200">
       <div className="max-w-2xl mx-auto my-12 p-8 card bg-base-100 shadow-xl border border-gray-300 rounded-box">
         <h2 className="text-center text-3xl font-extrabold mb-10 text-primary">
-          เพิ่มห้องคาราโอเกะ
+          เพิ่มห้องคาราโอเกะ 🎤
         </h2>
 
         <div className="space-y-7">
-          
+          {/* อัปโหลดรูปภาพ */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
-                รูปภาพที่นั่ง <span className="text-error">*</span>
+                รูปภาพห้องคาราโอเกะ <span className="text-error">*</span>
               </span>
             </label>
-            <div 
-              className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group"
-            >
+            <div className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group">
               <input
                 type="file"
                 accept="image/*"
@@ -95,22 +109,25 @@ export default function AddKaraokeRoom() {
                   <span className="text-gray-500 text-sm group-hover:text-gray-700 transition-colors">
                     ลากและวางไฟล์รูปภาพ หรือ คลิกเพื่อเลือก
                   </span>
-                  <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    รองรับไฟล์: JPG, PNG, GIF
+                  </p>
                 </div>
               ) : (
                 <img
                   src={seatImage}
-                  alt="Seat Preview"
+                  alt="Karaoke Preview"
                   className="h-full w-full object-contain p-2 rounded-lg z-0"
                 />
               )}
             </div>
           </div>
 
+          {/* สถานะ */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
-                สถานะที่นั่ง
+                สถานะห้อง
               </span>
             </label>
             <select
@@ -124,6 +141,7 @@ export default function AddKaraokeRoom() {
           </div>
         </div>
 
+        {/* ปุ่มเพิ่ม */}
         <div className="mt-10">
           <button
             className="btn btn-primary w-full text-lg font-bold"
@@ -144,7 +162,7 @@ export default function AddKaraokeRoom() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            เพิ่มที่นั่ง
+            เพิ่มห้องคาราโอเกะ
           </button>
         </div>
       </div>

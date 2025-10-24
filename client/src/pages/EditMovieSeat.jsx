@@ -1,31 +1,44 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { useNavigate, useParams } from "react-router-dom"; 
-
+import { useNavigate, useParams } from "react-router-dom";
+import MovieSeatService from "../services/movies.services"; // ✅ import service ที่ใช้จัดการ API
 
 export default function EditMovieSeat() {
-  const { seatId } = useParams(); 
-  
-  const [seatIdentifier, setSeatIdentifier] = useState(""); 
+  const { seatId } = useParams();
+
+  const [seatIdentifier, setSeatIdentifier] = useState("");
   const [seatImage, setSeatImage] = useState(null);
   const [seatStatus, setSeatStatus] = useState("available");
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
-// จำลองการดึงข้อมูลที่นั่งจาก API
+
+  // ✅ โหลดข้อมูลที่นั่งจาก API เมื่อเปิดหน้า
   useEffect(() => {
-    const mockSeatData = {
-      identifier: "A15",
-      status: "ว่าง", 
-      imageUrl: "http://cx.lnwfile.com/_/cx/_raw/ll/kz/nu.jpg" 
+    const fetchSeat = async () => {
+      try {
+        const res = await MovieSeatService.getByIdMoviesSeat(seatId);
+        const data = res.data;
+
+        setSeatIdentifier(data.identifier);
+        setSeatStatus(data.status);
+        setSeatImage(data.imageUrl);
+      } catch (error) {
+        console.error(error);
+        Swal.fire({
+          title: "เกิดข้อผิดพลาด!",
+          text: "ไม่สามารถโหลดข้อมูลที่นั่งได้",
+          icon: "error",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setSeatIdentifier(mockSeatData.identifier);
-    setSeatStatus(mockSeatData.status);
-    setSeatImage(mockSeatData.imageUrl);
-    setIsLoading(false);
-  }, [seatId]); 
+    fetchSeat();
+  }, [seatId]);
 
+  // ✅ เมื่อเลือกภาพใหม่
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -35,35 +48,51 @@ export default function EditMovieSeat() {
     }
   };
 
+  // ✅ เมื่อกดปุ่มอัปเดต
   const handleUpdateSeat = async () => {
     const result = await Swal.fire({
-      title: "คุณต้องการ**อัปเดต**ข้อมูลที่นั่งนี้หรือไม่?",
+      title: "คุณต้องการอัปเดตข้อมูลที่นั่งนี้หรือไม่?",
       showCancelButton: true,
       confirmButtonText: "ยืนยันการแก้ไข",
       cancelButtonText: "ยกเลิก",
       icon: "question",
       customClass: {
-        popup: 'bg-white text-gray-800',
-        title: 'text-gray-900',
-        confirmButton: 'btn btn-primary',
-        cancelButton: 'btn btn-ghost',
-      }
+        popup: "bg-white text-gray-800",
+        title: "text-gray-900",
+        confirmButton: "btn btn-primary",
+        cancelButton: "btn btn-ghost",
+      },
     });
 
-    if (result.isConfirmed) {
+    if (!result.isConfirmed) return;
+
+    try {
+     
+      await MovieSeatService.editMoviesSeat(seatId, {
+        identifier: seatIdentifier,
+        imageUrl: seatImage,
+        status: seatStatus,
+      });
+
       await Swal.fire({
-        title: "แก้ไขที่นั่งสำเร็จแล้ว",
+        title: "แก้ไขข้อมูลที่นั่งสำเร็จแล้ว 🎉",
         icon: "success",
-        customClass: {
-          popup: 'bg-white text-gray-800',
-          title: 'text-gray-900',
-        }
+        timer: 1500,
+        showConfirmButton: false,
       });
 
       navigate("/movies");
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        title: "เกิดข้อผิดพลาด!",
+        text: error?.response?.data?.message || "ไม่สามารถอัปเดตที่นั่งได้",
+        icon: "error",
+      });
     }
   };
 
+  // ✅ แสดงโหลดระหว่างรอข้อมูล
   if (isLoading) {
     return (
       <div className="min-h-screen bg-base-200 flex justify-center items-center">
@@ -75,15 +104,13 @@ export default function EditMovieSeat() {
 
   return (
     <div className="min-h-screen bg-base-200">
-
-
       <div className="max-w-2xl mx-auto my-12 p-8 card bg-base-100 shadow-xl border border-gray-300 rounded-box">
         <h2 className="text-center text-3xl font-extrabold mb-10 text-primary">
-          แก้ไขที่นั่งดูหนัง: **{seatIdentifier}** ✏️
+          แก้ไขที่นั่งดูหนัง: {seatIdentifier} ✏️
         </h2>
 
         <div className="space-y-7">
-          
+          {/* 🪑 รหัสที่นั่ง */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
@@ -100,15 +127,14 @@ export default function EditMovieSeat() {
             />
           </div>
 
+          {/* 🖼️ รูปภาพที่นั่ง */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
                 รูปภาพที่นั่ง <span className="text-error">*</span>
               </span>
             </label>
-            <div 
-              className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group"
-            >
+            <div className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group">
               <input
                 type="file"
                 accept="image/*"
@@ -134,7 +160,9 @@ export default function EditMovieSeat() {
                   <span className="text-gray-500 text-sm group-hover:text-gray-700 transition-colors">
                     ลากและวางไฟล์รูปภาพ หรือ คลิกเพื่อเลือก
                   </span>
-                  <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    ไฟล์ที่รองรับ: JPG, PNG, GIF
+                  </p>
                 </div>
               ) : (
                 <img
@@ -146,6 +174,7 @@ export default function EditMovieSeat() {
             </div>
           </div>
 
+          {/* 📋 สถานะ */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
@@ -163,6 +192,7 @@ export default function EditMovieSeat() {
           </div>
         </div>
 
+        {/* 🔘 ปุ่มอัปเดต */}
         <div className="mt-10">
           <button
             className="btn btn-primary w-full text-lg font-bold"

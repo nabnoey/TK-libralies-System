@@ -81,7 +81,7 @@ function UserProfile() {
   return (
     <div className="min-h-screen bg-indigo-950 text-white">
     
-      <div className="max-w-5xl mx-auto px-6 pt-20 pb-10">
+      <div className="max-w-5xl mx-auto px-6 pt-45 pb-10">
         <h1 className="text-3xl font-bold mb-6">โปรไฟล์ผู้ใช้</h1>
 
         {loading ? (

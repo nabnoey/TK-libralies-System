@@ -12,6 +12,7 @@ function Movies() {
           รอบจองโรงหนัง
         </div>
       </div>
+      
 
       {/* ผังที่นั่ง */}
       <div className="flex justify-center mb-20">
