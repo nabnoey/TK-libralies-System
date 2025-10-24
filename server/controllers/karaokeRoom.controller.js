@@ -3,17 +3,16 @@ const karaokeRoomController = {};
 
 karaokeRoomController.create = async (req, res) => {
   try {
-    const { name, image, status } = req.body;
+    const { name, image } = req.body;
 
-    if (!name || !image || status === undefined) {
-      res.status(400).send({ message: "name, image or status cannot be empty!" });
+    if (!name || !image) {
+      res.status(400).send({ message: "name and image cannot be empty!" });
       return;
     }
 
     const newKaraokeRoom = {
       name: name,
       image: image,
-      status: status,
     };
 
     const newRoom = await KaraokeRoom.create(newKaraokeRoom);
@@ -58,19 +57,18 @@ karaokeRoomController.getById = async (req, res) => {
 
 karaokeRoomController.update = async (req, res) => {
   try {
-    const { name, image, status } = req.body;
+    const { name, image } = req.body;
     const { id } = req.params;
 
-    if (!name && !image && status === undefined) {
+    if (!name && !image) {
       return res
         .status(400)
-        .json({ message: "name, image or status cannot be empty!" });
+        .json({ message: "name or image cannot be empty!" });
     }
 
     const updateData = {};
     if (name) updateData.name = name;
     if (image) updateData.image = image;
-    if (status !== undefined) updateData.status = status;
 
     await KaraokeRoom.update(
       updateData,

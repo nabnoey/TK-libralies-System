@@ -250,14 +250,6 @@ const createReservation = async (req, res) => {
                 })
             }
 
-            // ตรวจสอบว่าห้องเปิดใช้งานหรือไม่
-            if (!karaokeRoom.status) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'ห้องนี้ปิดให้บริการ'
-                })
-            }
-
             // หาคิวปัจจุบันในห้องนี้ (เฉพาะที่ยังไม่เสร็จสิ้น)
             const existingQueue = await Reservation.findAll({
                 where: {
@@ -319,14 +311,6 @@ const createReservation = async (req, res) => {
                 return res.status(404).json({
                     success: false,
                     message: 'ไม่พบที่นั่งหนังที่ระบุ'
-                })
-            }
-
-            // ตรวจสอบว่าที่นั่งเปิดใช้งานหรือไม่
-            if (!movieSeat.status) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'ที่นั่งนี้ปิดให้บริการ'
                 })
             }
 
@@ -1146,7 +1130,6 @@ const getKaraokeRoomsWithStatus = async (req, res) => {
 
         // ดึงห้อง Karaoke ทั้งหมด
         const rooms = await KaraokeRoom.findAll({
-            where: { status: true }, // เฉพาะห้องที่เปิดใช้งาน
             order: [['karaokeId', 'ASC']]
         })
 
@@ -1244,7 +1227,6 @@ const getMovieSeatsWithStatus = async (req, res) => {
 
         // ดึงที่นั่งหนังทั้งหมด
         const seats = await MovieSeat.findAll({
-            where: { status: true }, // เฉพาะที่นั่งที่เปิดใช้งาน
             order: [['movieId', 'ASC']]
         })
 

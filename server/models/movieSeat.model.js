@@ -14,10 +14,6 @@ const MovieSeat = sequelize.define("MovieSeat", {
         type: DataTypes.STRING,
         allowNull: false
     },
-    status: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false
-    },
     currentStatus: {
         type: DataTypes.ENUM('available', 'in_use', 'awaiting_checkin'),
         allowNull: false,
