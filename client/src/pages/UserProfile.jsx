@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-
-const API_BASE = import.meta.env.VITE_API_BASE;
+import AuthService from "../services/auth.services";
 
 function UserProfile() {
   const navigate = useNavigate();
@@ -19,14 +18,16 @@ function UserProfile() {
         return;
       }
       try {
-        const res = await fetch(`${API_BASE}/me`, {
-          headers: { Authorization: `Bearer ${jwt}` },
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "โหลดข้อมูลผู้ใช้ล้มเหลว");
+        const data = await AuthService.getMe(jwt);
         setMe(data);
+        setError("");
       } catch (e) {
-        setError(e.message || "โหลดข้อมูลผู้ใช้ล้มเหลว");
+        console.error("❌ โหลดข้อมูลผู้ใช้ล้มเหลว:", e);
+        setError(
+          e?.response?.data?.message ||
+            e?.message ||
+            "ไม่สามารถโหลดข้อมูลผู้ใช้ได้"
+        );
       } finally {
         setLoading(false);
       }
@@ -37,32 +38,32 @@ function UserProfile() {
   const lastReservation = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("lastReservation"));
-    } catch  {
+    } catch {
       return null;
     }
   }, []);
 
   const todayKey = useMemo(() => {
     const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${dd}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(d.getDate()).padStart(2, "0")}`;
   }, []);
 
   const bookingLocked = useMemo(() => {
     try {
       const locked = localStorage.getItem("bookingLockDate");
       return locked === todayKey;
-    } catch  {
+    } catch {
       return false;
     }
   }, [todayKey]);
 
   const handleCancel = async () => {
     const res = await Swal.fire({
-      title: "ยืนยันยกเลิกการจอง",
-      text: "คุณต้องการยกเลิกการจองของคุณหรือไม่?",
+      title: "ยืนยันยกเลิกรายการจองล่าสุด?",
+      text: "เมื่อลบแล้วจะไม่สามารถกู้คืนได้",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
@@ -70,17 +71,24 @@ function UserProfile() {
       confirmButtonText: "ยืนยัน",
       cancelButtonText: "ยกเลิก",
     });
+
     if (!res.isConfirmed) return;
+
     try {
       localStorage.removeItem("lastReservation");
-    } catch  { /* ignore */ }
-    await Swal.fire({ title: "ยกเลิกสำเร็จ", icon: "success", confirmButtonColor: "#f472b6" });
+    } catch {}
+
+    await Swal.fire({
+      title: "ลบรายการจองล่าสุดแล้ว",
+      icon: "success",
+      confirmButtonColor: "#f472b6",
+    });
+
     navigate("/details-reservation", { replace: true });
   };
 
   return (
     <div className="min-h-screen bg-indigo-950 text-white">
-    
       <div className="max-w-5xl mx-auto px-6 pt-45 pb-10">
         <h1 className="text-3xl font-bold mb-6">โปรไฟล์ผู้ใช้</h1>
 
@@ -97,88 +105,88 @@ function UserProfile() {
         ) : (
           <div className="card bg-base-100 text-amber-50 shadow-xl">
             <div className="card-body">
+              {/* 🔹 โปรไฟล์ผู้ใช้ */}
               <div className="flex items-center gap-4">
                 <div className="avatar">
                   <div className="w-20 rounded-full">
                     <img
-                      src={me?.avatar || "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"}
-                      alt={me?.name || "avatar"}
+                      src={
+                        me?.avatar ||
+                        "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                      }
+                      alt={me?.name || "User avatar"}
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src =
+                          "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp";
+                      }}
                     />
                   </div>
                 </div>
+
                 <div>
-                  <div className="text-xl font-bold">{me?.name || "ไม่ระบุชื่อ"}</div>
+                  <div className="text-xl font-bold">
+                    {me?.name || "ไม่ระบุชื่อ"}
+                  </div>
                   <div className="opacity-70">{me?.email}</div>
-                  <div className="badge badge-secondary mt-2">{me?.role || "user"}</div>
+                  <div className="badge badge-secondary mt-2">
+                    {me?.role || "user"}
+                  </div>
                 </div>
               </div>
 
               <div className="divider" />
 
-              <div className="grid md:grid-cols-2 gap-6">
+              {/* 🔹 ข้อมูลเพิ่มเติม */}
+              <div className="grid md:grid-cols-2 gap-6 ml-25">
                 <div className="bg-base-200 rounded-xl p-4">
-                  <div className="font-semibold mb-2">สถานะสิทธิ์วันนี้</div>
-                  {bookingLocked ? (
-                    <div className="text-green-600">ใช้สิทธิ์แล้ว (1 รอบ/วัน)</div>
-                  ) : (
-                    <div className="text-gray-300">ยังไม่ใช้สิทธิ์ (สามารถจองได้ 1 รอบ/วัน)</div>
+                  <div className="font-semibold mb-2">ข้อมูลบัญชี</div>
+                  <div>
+                    <b>รหัสผู้ใช้:</b> {me?.userId ?? "-"}
+                  </div>
+                  <div>
+                    <b>เข้าสู่ระบบด้วย:</b> {me?.provider ?? "-"}
+                  </div>
+                  {me?.lastLoginAt && (
+                    <div>
+                      <b>เข้าสู่ระบบล่าสุด:</b>{" "}
+                      {new Date(me.lastLoginAt).toLocaleString()}
+                    </div>
                   )}
                 </div>
-
-           <div className="bg-base-200 rounded-xl p-4">
-  <div className="font-semibold mb-2">การจองล่าสุด</div>
-  {lastReservation ? (
-    <div>
-      {/* ตรวจประเภทการจอง */}
-      <div>
-        <b>สถานที่:</b> {lastReservation.theater || "-"}
-      </div>
-
-      {lastReservation.theater?.includes("คาราโอเกะ") ? (
-        <div>
-          <b>ห้องที่จอง:</b>{" "}
-          {(lastReservation.seats || [])
-            .filter(Boolean)
-            .join(", ") || "ไม่พบข้อมูล"}
-        </div>
-      ) : (
-        <div>
-          <b>ที่นั่งที่จอง:</b>{" "}
-          {(lastReservation.seats || [])
-            .filter(Boolean)
-            .join(", ") || "ไม่พบข้อมูล"}
-        </div>
-      )}
-
-      <div className="mt-3 flex gap-2">
-        <button
-          onClick={() => navigate("/details-reservation")}
-          className="btn btn-sm bg-pink-500 text-white"
-        >
-          ดูรายละเอียด
-        </button>
-        <button
-          onClick={handleCancel}
-          className="btn btn-sm bg-red-500 text-white"
-        >
-          ยกเลิกการจอง
-        </button>
-      </div>
-    </div>
-  ) : (
-    <div className="text-gray-700">ยังไม่มีข้อมูลการจอง</div>
-  )}
-</div>
-
               </div>
 
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button onClick={() => navigate("/movies")} className="btn bg-pink-500 text-white">
-                  ไปจองรอบโรงหนัง
-                </button>
-                <button onClick={() => navigate("/karaoke")} className="btn bg-indigo-500 text-white">
-                  ไปจองห้องคาราโอเกะ
+              {/* 🔹 ปุ่มออกจากระบบ */}
+              <div className="mt-6">
+                <button
+                  onClick={async () => {
+                    const res = await Swal.fire({
+                      title: "ยืนยันการออกจากระบบ?",
+                      text: "คุณต้องการออกจากระบบตอนนี้หรือไม่?",
+                      icon: "warning",
+                      showCancelButton: true,
+                      confirmButtonColor: "#ef4444",
+                      cancelButtonColor: "#6b7280",
+                      confirmButtonText: "ออกจากระบบ",
+                      cancelButtonText: "ยกเลิก",
+                    });
+
+                    if (!res.isConfirmed) return;
+
+                    AuthService.logout();
+
+                    await Swal.fire({
+                      title: "ออกจากระบบแล้ว",
+                      icon: "success",
+                      confirmButtonColor: "#f472b6",
+                    });
+
+                    navigate("/");
+                  }}
+                  className="btn bg-red-600 text-white ml-25"
+                >
+                  ออกจากระบบ
                 </button>
               </div>
             </div>
@@ -190,4 +198,3 @@ function UserProfile() {
 }
 
 export default UserProfile;
-

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 function Dashboard() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-sky-100 to-purple-100">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-sky-100 to-purple-100 pt-30">
 
       <div className="container mx-auto px-6 py-12">
         <div className="text-center mb-12">
