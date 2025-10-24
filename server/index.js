@@ -19,8 +19,9 @@ app.use(
   })
 );
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// เพิ่มขนาด limit สำหรับรองรับรูปภาพ base64 (10MB)
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
 const sequelize = require('./models/db'); 
 
