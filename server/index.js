@@ -1,5 +1,6 @@
 const express = require('express')
 const path = require('path')
+const fs = require('fs')
 require('dotenv').config()
 const cors = require('cors')
 const swaggerUi = require('swagger-ui-express')
@@ -7,6 +8,13 @@ const swaggerSpec = require('./config/swagger')
 const app = express()
 const PORT = process.env.PORT || 5000
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+// สร้างโฟลเดอร์ uploads ถ้ายังไม่มี (สำคัญสำหรับ production)
+const uploadsDir = path.join(__dirname, 'uploads')
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true })
+    console.log('Created uploads directory')
+}
 
 // CORS configuration
 app.use(
@@ -37,19 +45,33 @@ require('./models/reservation.model');
 require('./models/notification.model');
 require('./models/associations');
 
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log('DB synced')
+// เริ่ม server ก่อน sync database เพื่อให้ health check ผ่าน
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`)
 
-    // เริ่มต้น Reservation Scheduler (ตรวจสอบเวลาใช้งาน)
-    const { startReservationScheduler } = require('./services/reservationScheduler')
-    startReservationScheduler()
-  })
-  .catch(err => console.error('DB sync error:', err));
+  // Sync database หลังจาก server start แล้ว
+  sequelize.sync({ alter: true })
+    .then(() => {
+      console.log('DB synced')
+
+      // เริ่มต้น Reservation Scheduler (ตรวจสอบเวลาใช้งาน)
+      const { startReservationScheduler } = require('./services/reservationScheduler')
+      startReservationScheduler()
+    })
+    .catch(err => {
+      console.error('DB sync error:', err)
+      // ไม่ปิด server แม้ DB sync fail เพื่อให้ health check ยังผ่าน
+    })
+});
 
 
 app.get('/', (req, res) => {
     res.send('TK-libralies-System')
+})
+
+// Health check endpoint สำหรับ Render
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
 // Swagger UI
@@ -173,5 +195,35 @@ app.post("/dev/test-login", async (req, res) => {
   }
 });
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
 
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`))
+  // Multer file size error
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      message: 'ไฟล์มีขนาดใหญ่เกินไป กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB'
+    });
+  }
+
+  // Multer file type error
+  if (err.message && err.message.includes('รองรับเฉพาะไฟล์รูปภาพ')) {
+    return res.status(400).json({
+      message: err.message
+    });
+  }
+
+  // Default error
+  res.status(err.status || 500).json({
+    message: err.message || 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    message: 'ไม่พบเส้นทางที่ร้องขอ',
+    path: req.path
+  });
+});

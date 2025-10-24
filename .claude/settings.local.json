@@ -5,7 +5,8 @@
       "Bash(npm install:*)",
       "Bash(if not exist \"middlewares\" mkdir middlewares)",
       "Bash(if not exist \"uploads\" mkdir uploads)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(node -c:*)"
     ],
     "deny": [],
     "ask": []
