@@ -5,7 +5,14 @@ const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     host: dbConfig.HOST,
     port: dbConfig.PORT,
     dialect: dbConfig.DIALECT,
-    logging: false
+    logging: false,
+    omitNull: true,
+    dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false, // ไม่แนะนำใน production
+    },
+  },
 })
 
 const connection = async () => {
