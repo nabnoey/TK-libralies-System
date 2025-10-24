@@ -5,10 +5,19 @@ const swaggerUi = require('swagger-ui-express')
 const swaggerSpec = require('./config/swagger')
 const app = express()
 const PORT = process.env.PORT || 5000
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
-
-
-app.use(cors({ origin: ["http://localhost:5173"], credentials: true }));
+// CORS configuration
+app.use(
+  cors({
+    // origin ต้นทางมาจากไหนได้บ้าง
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173", FRONTEND_URL],
+    // อนุญาตให้ ใช้ method ไรบ้าง
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-access-token"],
+    credentials: true // สำคัญสำหรับการส่ง cookies/auth headers
+  })
+);
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -160,4 +169,4 @@ app.post("/dev/test-login", async (req, res) => {
 });
 
 
-app.listen(5000, () => console.log(`Server is running on http://localhost:${PORT}`))
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`))
