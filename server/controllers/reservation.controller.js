@@ -109,8 +109,17 @@ const createReservation = async (req, res) => {
         const { reservationType, itemId, friendEmails } = req.body
         const userId = req.user.uid // จาก middleware authentication
 
-        // ใช้วันที่ปัจจุบันตาม timezone Bangkok เป็น default
-        const reservationDate = req.body.reservationDate || getTodayDate()
+        // ใช้วันที่ปัจจุบันตาม timezone Bangkok
+        const today = getTodayDate()
+        const reservationDate = req.body.reservationDate || today
+
+        // ตรวจสอบว่าจองได้เฉพาะวันนี้เท่านั้น (ห้ามจองย้อนหลังหรือล่วงหน้า)
+        if (reservationDate !== today) {
+            return res.status(400).json({
+                success: false,
+                message: `สามารถจองได้เฉพาะวันนี้เท่านั้น (${today}) ไม่สามารถจองย้อนหลังหรือล่วงหน้าได้`
+            })
+        }
 
         // ตรวจสอบว่ามีข้อมูลครบหรือไม่
         if (!reservationType || !itemId || !friendEmails) {
