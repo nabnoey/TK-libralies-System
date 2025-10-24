@@ -4,27 +4,53 @@ import { useNavigate } from "react-router-dom";
 
 
 export default function AddMovieSeat() {
-  const [seatImage, setSeatImage] = useState(null);
-  const [seatStatus, setSeatStatus] = useState("available");
+  const [name, setName] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const navigate = useNavigate();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
-      reader.onload = () => setSeatImage(reader.result);
+      reader.onload = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
     }
   };
 
   const handleAddSeat = async () => {
+    if (!name.trim()) {
+      await Swal.fire({
+        title: "กรุณากรอกชื่อโรงหนัง",
+        icon: "warning",
+        customClass: {
+          popup: 'bg-white text-gray-800',
+          title: 'text-gray-900',
+        }
+      });
+      return;
+    }
+
+    if (!imageFile) {
+      await Swal.fire({
+        title: "กรุณาเลือกรูปภาพ",
+        icon: "warning",
+        customClass: {
+          popup: 'bg-white text-gray-800',
+          title: 'text-gray-900',
+        }
+      });
+      return;
+    }
+
     const result = await Swal.fire({
-      title: "คุณต้องการเพิ่มที่นั่งสำหรับดูหนังหรือไม่?",
+      title: "คุณต้องการเพิ่มโรงหนังหรือไม่?",
       showCancelButton: true,
       confirmButtonText: "ยืนยัน",
       cancelButtonText: "ยกเลิก",
       icon: "question",
-      customClass: { 
+      customClass: {
         popup: 'bg-white text-gray-800',
         title: 'text-gray-900',
         confirmButton: 'btn btn-primary',
@@ -33,19 +59,46 @@ export default function AddMovieSeat() {
     });
 
     if (result.isConfirmed) {
-      await Swal.fire({
-        title: "เพิ่มที่นั่งสำเร็จแล้ว",
-        icon: "success",
-        customClass: {
-          popup: 'bg-white text-gray-800',
-          title: 'text-gray-900',
-        }
-      });
+      try {
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('image', imageFile);
 
-      setSeatImage(null);
-      setSeatStatus("available");
-      
-      navigate("/movies"); 
+        // TODO: แทนที่ URL นี้ด้วย API endpoint ที่ถูกต้อง
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+        const response = await fetch(`https://tk-libralies-system.onrender.com/api/v1/movie-seat`, {
+          method: 'POST',
+          body: formData,
+          // ไม่ต้องใส่ Content-Type เพราะ browser จะใส่ให้พร้อม boundary
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create movie seat');
+        }
+
+        await Swal.fire({
+          title: "เพิ่มโรงหนังสำเร็จแล้ว",
+          icon: "success",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+
+        navigate("/movies");
+      } catch (error) {
+        console.error('Error adding movie seat:', error);
+        await Swal.fire({
+          title: "เกิดข้อผิดพลาด",
+          text: "ไม่สามารถเพิ่มโรงหนังได้ กรุณาลองใหม่อีกครั้ง",
+          icon: "error",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+      }
     }
   };
 
@@ -60,23 +113,39 @@ export default function AddMovieSeat() {
         </h2>
 
         <div className="space-y-7">
-          
+
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
-                รูปภาพที่นั่ง <span className="text-error">*</span>
+                ชื่อโรงหนัง <span className="text-error">*</span>
               </span>
             </label>
-            <div 
+            <input
+              type="text"
+              className="input input-bordered w-full text-gray-800"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="เช่น Movie Theater A, โรงหนัง VIP"
+              required
+            />
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-semibold text-gray-700">
+                รูปภาพโรงหนัง <span className="text-error">*</span>
+              </span>
+            </label>
+            <div
               className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group"
             >
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                 className="opacity-0 absolute w-full h-full cursor-pointer z-10"
                 onChange={handleImageChange}
               />
-              {!seatImage ? (
+              {!imagePreview ? (
                 <div className="text-center p-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -95,32 +164,16 @@ export default function AddMovieSeat() {
                   <span className="text-gray-500 text-sm group-hover:text-gray-700 transition-colors">
                     ลากและวางไฟล์รูปภาพ หรือ คลิกเพื่อเลือก
                   </span>
-                  <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF</p>
+                  <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF, WebP (ไม่เกิน 5MB)</p>
                 </div>
               ) : (
                 <img
-                  src={seatImage}
-                  alt="Seat Preview"
+                  src={imagePreview}
+                  alt="Movie Seat Preview"
                   className="h-full w-full object-contain p-2 rounded-lg z-0"
                 />
               )}
             </div>
-          </div>
-
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold text-gray-700">
-                สถานะที่นั่ง
-              </span>
-            </label>
-            <select
-              className="select select-bordered w-full text-gray-800"
-              value={seatStatus}
-              onChange={(e) => setSeatStatus(e.target.value)}
-            >
-              <option value="available">ว่าง (Available)</option>
-              <option value="occupied">ไม่ว่าง (Occupied)</option>
-            </select>
           </div>
         </div>
 
@@ -128,7 +181,7 @@ export default function AddMovieSeat() {
           <button
             className="btn btn-primary w-full text-lg font-bold"
             onClick={handleAddSeat}
-            disabled={!seatImage}
+            disabled={!name.trim() || !imageFile}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -144,7 +197,7 @@ export default function AddMovieSeat() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            เพิ่มที่นั่ง
+            เพิ่มโรงหนัง
           </button>
         </div>
       </div>

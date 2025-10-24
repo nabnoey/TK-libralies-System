@@ -1,43 +1,77 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { useNavigate, useParams } from "react-router-dom"; 
+import { useNavigate, useParams } from "react-router-dom";
 
 
 export default function EditMovieSeat() {
-  const { seatId } = useParams(); 
-  
-  const [seatIdentifier, setSeatIdentifier] = useState(""); 
-  const [seatImage, setSeatImage] = useState(null);
-  const [seatStatus, setSeatStatus] = useState("available");
+  const { seatId } = useParams();
+
+  const [name, setName] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
-// จำลองการดึงข้อมูลที่นั่งจาก API
+
+  // ดึงข้อมูลจาก API
   useEffect(() => {
-    const mockSeatData = {
-      identifier: "A15",
-      status: "ว่าง", 
-      imageUrl: "http://cx.lnwfile.com/_/cx/_raw/ll/kz/nu.jpg" 
+    const fetchMovieSeat = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${API_URL}/api/v1/movie-seat/${seatId}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch movie seat');
+        }
+
+        const data = await response.json();
+        setName(data.name);
+        // แสดงรูปภาพจาก server
+        setImagePreview(`${API_URL}${data.image}`);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching movie seat:', error);
+        await Swal.fire({
+          title: "เกิดข้อผิดพลาด",
+          text: "ไม่สามารถโหลดข้อมูลโรงหนังได้",
+          icon: "error",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+        navigate("/movies");
+      }
     };
 
-    setSeatIdentifier(mockSeatData.identifier);
-    setSeatStatus(mockSeatData.status);
-    setSeatImage(mockSeatData.imageUrl);
-    setIsLoading(false);
-  }, [seatId]); 
+    fetchMovieSeat();
+  }, [seatId, navigate]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
-      reader.onload = () => setSeatImage(reader.result);
+      reader.onload = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
     }
   };
 
   const handleUpdateSeat = async () => {
+    if (!name.trim()) {
+      await Swal.fire({
+        title: "กรุณากรอกชื่อโรงหนัง",
+        icon: "warning",
+        customClass: {
+          popup: 'bg-white text-gray-800',
+          title: 'text-gray-900',
+        }
+      });
+      return;
+    }
+
     const result = await Swal.fire({
-      title: "คุณต้องการ**อัปเดต**ข้อมูลที่นั่งนี้หรือไม่?",
+      title: "คุณต้องการอัปเดตข้อมูลโรงหนังนี้หรือไม่?",
       showCancelButton: true,
       confirmButtonText: "ยืนยันการแก้ไข",
       cancelButtonText: "ยกเลิก",
@@ -51,16 +85,46 @@ export default function EditMovieSeat() {
     });
 
     if (result.isConfirmed) {
-      await Swal.fire({
-        title: "แก้ไขที่นั่งสำเร็จแล้ว",
-        icon: "success",
-        customClass: {
-          popup: 'bg-white text-gray-800',
-          title: 'text-gray-900',
+      try {
+        const formData = new FormData();
+        formData.append('name', name);
+        if (imageFile) {
+          formData.append('image', imageFile);
         }
-      });
 
-      navigate("/movies");
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+        const response = await fetch(`${API_URL}/api/v1/movie-seat/${seatId}`, {
+          method: 'PUT',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update movie seat');
+        }
+
+        await Swal.fire({
+          title: "แก้ไขโรงหนังสำเร็จแล้ว",
+          icon: "success",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+
+        navigate("/movies");
+      } catch (error) {
+        console.error('Error updating movie seat:', error);
+        await Swal.fire({
+          title: "เกิดข้อผิดพลาด",
+          text: "ไม่สามารถแก้ไขโรงหนังได้ กรุณาลองใหม่อีกครั้ง",
+          icon: "error",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+      }
     }
   };
 
@@ -68,7 +132,7 @@ export default function EditMovieSeat() {
     return (
       <div className="min-h-screen bg-base-200 flex justify-center items-center">
         <span className="loading loading-spinner loading-lg text-primary"></span>
-        <p className="ml-3 text-lg">กำลังโหลดข้อมูลที่นั่ง...</p>
+        <p className="ml-3 text-lg">กำลังโหลดข้อมูลโรงหนัง...</p>
       </div>
     );
   }
@@ -79,23 +143,23 @@ export default function EditMovieSeat() {
 
       <div className="max-w-2xl mx-auto my-12 p-8 card bg-base-100 shadow-xl border border-gray-300 rounded-box">
         <h2 className="text-center text-3xl font-extrabold mb-10 text-primary">
-          แก้ไขที่นั่งดูหนัง: **{seatIdentifier}** ✏️
+          แก้ไขโรงหนัง: {name} ✏️
         </h2>
 
         <div className="space-y-7">
-          
+
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
-                รหัส/ชื่อที่นั่ง <span className="text-error">*</span>
+                ชื่อโรงหนัง <span className="text-error">*</span>
               </span>
             </label>
             <input
               type="text"
               className="input input-bordered w-full text-gray-800"
-              value={seatIdentifier}
-              onChange={(e) => setSeatIdentifier(e.target.value)}
-              placeholder="เช่น A1, VIP-C2"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="เช่น Movie Theater A, โรงหนัง VIP"
               required
             />
           </div>
@@ -103,19 +167,19 @@ export default function EditMovieSeat() {
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
-                รูปภาพที่นั่ง <span className="text-error">*</span>
+                รูปภาพโรงหนัง <span className="text-error">*</span>
               </span>
             </label>
-            <div 
+            <div
               className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group"
             >
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                 className="opacity-0 absolute w-full h-full cursor-pointer z-10"
                 onChange={handleImageChange}
               />
-              {!seatImage ? (
+              {!imagePreview ? (
                 <div className="text-center p-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -134,32 +198,16 @@ export default function EditMovieSeat() {
                   <span className="text-gray-500 text-sm group-hover:text-gray-700 transition-colors">
                     ลากและวางไฟล์รูปภาพ หรือ คลิกเพื่อเลือก
                   </span>
-                  <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF</p>
+                  <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF, WebP (ไม่เกิน 5MB)</p>
                 </div>
               ) : (
                 <img
-                  src={seatImage}
-                  alt="ตัวอย่างรูปภาพที่นั่ง"
+                  src={imagePreview}
+                  alt="ตัวอย่างรูปภาพโรงหนัง"
                   className="h-full w-full object-contain p-2 rounded-lg z-0"
                 />
               )}
             </div>
-          </div>
-
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold text-gray-700">
-                สถานะที่นั่ง
-              </span>
-            </label>
-            <select
-              className="select select-bordered w-full text-gray-800"
-              value={seatStatus}
-              onChange={(e) => setSeatStatus(e.target.value)}
-            >
-              <option value="available">ว่าง (Available)</option>
-              <option value="occupied">ไม่ว่าง/ถูกจอง (Occupied)</option>
-            </select>
           </div>
         </div>
 
@@ -167,7 +215,7 @@ export default function EditMovieSeat() {
           <button
             className="btn btn-primary w-full text-lg font-bold"
             onClick={handleUpdateSeat}
-            disabled={!seatImage || !seatIdentifier}
+            disabled={!name.trim()}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -183,7 +231,7 @@ export default function EditMovieSeat() {
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m3.987 2H20M9 13l-3-3m0 0l-3 3m3-3v8"
               />
             </svg>
-            อัปเดตที่นั่ง
+            อัปเดตโรงหนัง
           </button>
         </div>
       </div>
