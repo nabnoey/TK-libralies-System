@@ -2,6 +2,7 @@ const { create, getAll, getById, update, deleteById } = require('../controllers/
 
 const express = require('express')
 const router = express.Router()
+const upload = require('../middlewares/upload.middleware')
 
 /**
  * @swagger
@@ -14,7 +15,7 @@ const router = express.Router()
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -26,7 +27,8 @@ const router = express.Router()
  *                 example: Movie Theater A
  *               image:
  *                 type: string
- *                 example: https://example.com/image.jpg
+ *                 format: binary
+ *                 description: รูปภาพโรงหนัง (jpeg, jpg, png, gif, webp) ไม่เกิน 5MB
  *               status:
  *                 type: boolean
  *                 default: true
@@ -43,7 +45,7 @@ const router = express.Router()
  *       500:
  *         description: Server error
  */
-router.post('/', create)
+router.post('/', upload.single('image'), create)
 
 /**
  * @swagger
@@ -110,7 +112,7 @@ router.get('/:id', getById)
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -118,6 +120,8 @@ router.get('/:id', getById)
  *                 type: string
  *               image:
  *                 type: string
+ *                 format: binary
+ *                 description: รูปภาพโรงหนัง (jpeg, jpg, png, gif, webp) ไม่เกิน 5MB
  *               status:
  *                 type: boolean
  *                 description: true = available, false = occupied
@@ -133,7 +137,7 @@ router.get('/:id', getById)
  *       500:
  *         description: Server error
  */
-router.put('/:id', update)
+router.put('/:id', upload.single('image'), update)
 
 /**
  * @swagger

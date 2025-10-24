@@ -6,38 +6,70 @@ import { useNavigate, useParams } from "react-router-dom";
 export default function EditKaraokeRoom() {
   const { roomId } = useParams();
 
-  const [roomName, setRoomName] = useState("");
-  const [roomImage, setRoomImage] = useState(null);
-  const [roomStatus, setRoomStatus] = useState("available");
+  const [name, setName] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
 
-  // 🔹 จำลองข้อมูลห้อง (ในอนาคตใช้ getById แทน mock)
+  // ดึงข้อมูลจาก API
   useEffect(() => {
-    const mockRoomData = {
-      name: "VIP-Gold (ห้อง 3)",
-      status: "occupied",
-      imageUrl:
-        "https://img.wongnai.com/p/1600x0/2019/06/03/d7fb356d07f84684b3661fd6538d8ed3.jpg",
+    const fetchKaraokeRoom = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${API_URL}/api/v1/karaoke-room/${roomId}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch karaoke room');
+        }
+
+        const data = await response.json();
+        setName(data.name);
+        // แสดงรูปภาพจาก server
+        setImagePreview(`${API_URL}${data.image}`);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching karaoke room:', error);
+        await Swal.fire({
+          title: "เกิดข้อผิดพลาด",
+          text: "ไม่สามารถโหลดข้อมูลห้องคาราโอเกะได้",
+          icon: "error",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+        navigate("/karaoke");
+      }
     };
 
-    setRoomName(mockRoomData.name);
-    setRoomStatus(mockRoomData.status);
-    setRoomImage(mockRoomData.imageUrl);
-    setIsLoading(false);
-  }, [roomId]);
+    fetchKaraokeRoom();
+  }, [roomId, navigate]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
-      reader.onload = () => setRoomImage(reader.result);
+      reader.onload = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
     }
   };
 
   const handleUpdateRoom = async () => {
+    if (!name.trim()) {
+      await Swal.fire({
+        title: "กรุณากรอกชื่อห้องคาราโอเกะ",
+        icon: "warning",
+        customClass: {
+          popup: 'bg-white text-gray-800',
+          title: 'text-gray-900',
+        }
+      });
+      return;
+    }
+
     const result = await Swal.fire({
       title: "คุณต้องการอัปเดตข้อมูลห้องคาราโอเกะนี้หรือไม่?",
       showCancelButton: true,
@@ -45,40 +77,54 @@ export default function EditKaraokeRoom() {
       cancelButtonText: "ยกเลิก",
       icon: "question",
       customClass: {
-        popup: "bg-white text-gray-800",
-        title: "text-gray-900",
-        confirmButton: "btn btn-primary",
-        cancelButton: "btn btn-ghost",
-      },
+        popup: 'bg-white text-gray-800',
+        title: 'text-gray-900',
+        confirmButton: 'btn btn-primary',
+        cancelButton: 'btn btn-ghost',
+      }
     });
 
-    if (!result.isConfirmed) return;
+    if (result.isConfirmed) {
+      try {
+        const formData = new FormData();
+        formData.append('name', name);
+        if (imageFile) {
+          formData.append('image', imageFile);
+        }
 
-    try {
-      // ✅ เรียก service update
-      await KaraokeService.editKaraoke(roomId, {
-        name: roomName,
-        image: roomImage,
-        status: roomStatus,
-      });
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-      await Swal.fire({
-        title: "แก้ไขห้องคาราโอเกะสำเร็จแล้ว 🎉",
-        icon: "success",
-        customClass: {
-          popup: "bg-white text-gray-800",
-          title: "text-gray-900",
-        },
-      });
+        const response = await fetch(`${API_URL}/api/v1/karaoke-room/${roomId}`, {
+          method: 'PUT',
+          body: formData,
+        });
 
-      navigate("/karaoke");
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        title: "เกิดข้อผิดพลาด!",
-        text: error?.response?.data?.message || "อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
-        icon: "error",
-      });
+        if (!response.ok) {
+          throw new Error('Failed to update karaoke room');
+        }
+
+        await Swal.fire({
+          title: "แก้ไขห้องคาราโอเกะสำเร็จแล้ว",
+          icon: "success",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+
+        navigate("/karaoke");
+      } catch (error) {
+        console.error('Error updating karaoke room:', error);
+        await Swal.fire({
+          title: "เกิดข้อผิดพลาด",
+          text: "ไม่สามารถแก้ไขห้องคาราโอเกะได้ กรุณาลองใหม่อีกครั้ง",
+          icon: "error",
+          customClass: {
+            popup: 'bg-white text-gray-800',
+            title: 'text-gray-900',
+          }
+        });
+      }
     }
   };
 
@@ -93,13 +139,15 @@ export default function EditKaraokeRoom() {
 
   return (
     <div className="min-h-screen bg-base-200">
+
+
       <div className="max-w-2xl mx-auto my-12 p-8 card bg-base-100 shadow-xl border border-gray-300 rounded-box">
         <h2 className="text-center text-3xl font-extrabold mb-10 text-primary">
-          แก้ไขห้องคาราโอเกะ: {roomName} 🎤
+          แก้ไขห้องคาราโอเกะ: {name} 🎤
         </h2>
 
         <div className="space-y-7">
-          {/* ชื่อห้อง */}
+
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
@@ -109,9 +157,9 @@ export default function EditKaraokeRoom() {
             <input
               type="text"
               className="input input-bordered w-full text-gray-800"
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              placeholder="เช่น ห้อง VIP-Gold"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="เช่น ห้อง VIP-Gold, Karaoke Room A"
               required
             />
           </div>
@@ -123,14 +171,16 @@ export default function EditKaraokeRoom() {
                 รูปภาพห้องคาราโอเกะ <span className="text-error">*</span>
               </span>
             </label>
-            <div className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group">
+            <div
+              className="flex justify-center items-center h-52 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer transition duration-300 ease-in-out hover:bg-gray-50 relative group"
+            >
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                 className="opacity-0 absolute w-full h-full cursor-pointer z-10"
                 onChange={handleImageChange}
               />
-              {!roomImage ? (
+              {!imagePreview ? (
                 <div className="text-center p-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -149,36 +199,16 @@ export default function EditKaraokeRoom() {
                   <span className="text-gray-500 text-sm group-hover:text-gray-700 transition-colors">
                     ลากและวางไฟล์รูปภาพ หรือ คลิกเพื่อเลือก
                   </span>
-                  <p className="text-xs text-gray-400 mt-1">
-                    ไฟล์ที่รองรับ: JPG, PNG, GIF
-                  </p>
+                  <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF, WebP (ไม่เกิน 5MB)</p>
                 </div>
               ) : (
                 <img
-                  src={roomImage}
-                  alt="Room Preview"
+                  src={imagePreview}
+                  alt="ตัวอย่างรูปภาพห้องคาราโอเกะ"
                   className="h-full w-full object-contain p-2 rounded-lg z-0"
                 />
               )}
             </div>
-          </div>
-
-          {/* สถานะ */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold text-gray-700">
-                สถานะห้อง
-              </span>
-            </label>
-            <select
-              className="select select-bordered w-full text-gray-800"
-              value={roomStatus}
-              onChange={(e) => setRoomStatus(e.target.value)}
-            >
-              <option value="available">ว่าง (Available)</option>
-              <option value="occupied">ไม่ว่าง/ถูกจอง (Occupied)</option>
-              <option value="unavailable">ปิดปรับปรุง/ไม่พร้อมใช้งาน (Unavailable)</option>
-            </select>
           </div>
         </div>
 
@@ -187,7 +217,7 @@ export default function EditKaraokeRoom() {
           <button
             className="btn btn-primary w-full text-lg font-bold"
             onClick={handleUpdateRoom}
-            disabled={!roomImage || !roomName}
+            disabled={!name.trim()}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

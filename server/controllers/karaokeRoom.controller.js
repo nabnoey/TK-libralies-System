@@ -3,17 +3,24 @@ const karaokeRoomController = {};
 
 karaokeRoomController.create = async (req, res) => {
   try {
-    const { name, image, status } = req.body;
+    const { name } = req.body;
 
-    if (!name || !image || status === undefined) {
-      res.status(400).send({ message: "name, image or status cannot be empty!" });
+    if (!name) {
+      res.status(400).send({ message: "name cannot be empty!" });
       return;
     }
 
+    if (!req.file) {
+      res.status(400).send({ message: "image file is required!" });
+      return;
+    }
+
+    // สร้าง URL สำหรับเข้าถึงรูปภาพ
+    const imageUrl = `/uploads/${req.file.filename}`;
+
     const newKaraokeRoom = {
       name: name,
-      image: image,
-      status: status,
+      image: imageUrl,
     };
 
     const newRoom = await KaraokeRoom.create(newKaraokeRoom);
@@ -58,19 +65,21 @@ karaokeRoomController.getById = async (req, res) => {
 
 karaokeRoomController.update = async (req, res) => {
   try {
-    const { name, image, status } = req.body;
+    const { name } = req.body;
     const { id } = req.params;
 
-    if (!name && !image && status === undefined) {
+    if (!name && !req.file) {
       return res
         .status(400)
-        .json({ message: "name, image or status cannot be empty!" });
+        .json({ message: "name or image cannot be empty!" });
     }
 
     const updateData = {};
     if (name) updateData.name = name;
-    if (image) updateData.image = image;
-    if (status !== undefined) updateData.status = status;
+    if (req.file) {
+      // ถ้ามีการอัปโหลดรูปใหม่
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
 
     await KaraokeRoom.update(
       updateData,

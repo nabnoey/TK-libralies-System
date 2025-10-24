@@ -7,12 +7,19 @@ const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     dialect: dbConfig.DIALECT,
     logging: false,
     omitNull: true,
-    dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false, // ไม่แนะนำใน production
+    pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
     },
-  },
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false, // ไม่แนะนำใน production
+        },
+        connectTimeout: 60000 // เพิ่ม timeout เป็น 60 วินาที
+    },
 })
 
 const connection = async () => {
@@ -24,5 +31,7 @@ const connection = async () => {
     }
 }
 
-connection()
+// ไม่เรียก connection() ทันที ให้ index.js เรียกเองผ่าน sync
+// connection()
+
 module.exports = sequelize
