@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import KaraokeService from "../services/karaoke.services";
 import { useNavigate, useParams } from "react-router-dom";
-
 
 export default function EditKaraokeRoom() {
   const { roomId } = useParams();
@@ -164,6 +164,7 @@ export default function EditKaraokeRoom() {
             />
           </div>
 
+          {/* รูปภาพ */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
@@ -211,6 +212,7 @@ export default function EditKaraokeRoom() {
           </div>
         </div>
 
+        {/* ปุ่มอัปเดต */}
         <div className="mt-10">
           <button
             className="btn btn-primary w-full text-lg font-bold"

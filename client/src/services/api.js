@@ -1,5 +1,6 @@
 import axios from "axios";
-const baseURL = import.meta.env.VITE_BASE_URL;
+// Use the same API base used elsewhere in the app
+const baseURL = import.meta.env.VITE_API_BASE;
 
 const api = axios.create({
   baseURL: baseURL,

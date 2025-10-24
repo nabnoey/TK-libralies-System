@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
+import MoviesSeat from "../services/movies.services";
 import { useNavigate } from "react-router-dom";
-
 
 export default function AddMovieSeat() {
   const [name, setName] = useState("");
@@ -103,10 +103,7 @@ export default function AddMovieSeat() {
   };
 
   return (
-  
-    <div className="min-h-screen bg-base-200"> 
-  
-      
+    <div className="min-h-screen bg-base-200 pt-30">
       <div className="max-w-2xl mx-auto my-12 p-8 card bg-base-100 shadow-xl border border-gray-300 rounded-box">
         <h2 className="text-center text-3xl font-extrabold mb-10 text-primary">
           เพิ่มที่นั่งดูหนัง ✨
@@ -149,7 +146,7 @@ export default function AddMovieSeat() {
                 <div className="text-center p-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-10 w-10 mx-auto text-gray-500 mb-3 group-hover:text-primary transition-colors"
+                    className="h-10 w-10 mx-auto text-white mb-3 group-hover:text-primary transition-colors"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -161,7 +158,7 @@ export default function AddMovieSeat() {
                       d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v8"
                     />
                   </svg>
-                  <span className="text-gray-500 text-sm group-hover:text-gray-700 transition-colors">
+                  <span className="text-white text-sm group-hover:text-gray-700 transition-colors">
                     ลากและวางไฟล์รูปภาพ หรือ คลิกเพื่อเลือก
                   </span>
                   <p className="text-xs text-gray-400 mt-1">ไฟล์ที่รองรับ: JPG, PNG, GIF, WebP (ไม่เกิน 5MB)</p>
@@ -177,6 +174,7 @@ export default function AddMovieSeat() {
           </div>
         </div>
 
+        {/* 🔹 ปุ่มบันทึก */}
         <div className="mt-10">
           <button
             className="btn btn-primary w-full text-lg font-bold"

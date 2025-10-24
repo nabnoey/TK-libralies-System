@@ -47,6 +47,7 @@ export default function EditMovieSeat() {
     fetchMovieSeat();
   }, [seatId, navigate]);
 
+  // ✅ เมื่อเลือกภาพใหม่
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -57,6 +58,7 @@ export default function EditMovieSeat() {
     }
   };
 
+  // ✅ เมื่อกดปุ่มอัปเดต
   const handleUpdateSeat = async () => {
     if (!name.trim()) {
       await Swal.fire({
@@ -77,11 +79,11 @@ export default function EditMovieSeat() {
       cancelButtonText: "ยกเลิก",
       icon: "question",
       customClass: {
-        popup: 'bg-white text-gray-800',
-        title: 'text-gray-900',
-        confirmButton: 'btn btn-primary',
-        cancelButton: 'btn btn-ghost',
-      }
+        popup: "bg-white text-gray-800",
+        title: "text-gray-900",
+        confirmButton: "btn btn-primary",
+        cancelButton: "btn btn-ghost",
+      },
     });
 
     if (result.isConfirmed) {
@@ -128,6 +130,7 @@ export default function EditMovieSeat() {
     }
   };
 
+  // ✅ แสดงโหลดระหว่างรอข้อมูล
   if (isLoading) {
     return (
       <div className="min-h-screen bg-base-200 flex justify-center items-center">
@@ -139,8 +142,6 @@ export default function EditMovieSeat() {
 
   return (
     <div className="min-h-screen bg-base-200">
-
-
       <div className="max-w-2xl mx-auto my-12 p-8 card bg-base-100 shadow-xl border border-gray-300 rounded-box">
         <h2 className="text-center text-3xl font-extrabold mb-10 text-primary">
           แก้ไขโรงหนัง: {name} ✏️
@@ -164,6 +165,7 @@ export default function EditMovieSeat() {
             />
           </div>
 
+          {/* 🖼️ รูปภาพที่นั่ง */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold text-gray-700">
@@ -211,6 +213,7 @@ export default function EditMovieSeat() {
           </div>
         </div>
 
+        {/* 🔘 ปุ่มอัปเดต */}
         <div className="mt-10">
           <button
             className="btn btn-primary w-full text-lg font-bold"

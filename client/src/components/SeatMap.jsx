@@ -1,9 +1,37 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import ReservationsService from "../services/reservations.services";
 
 const SeatMap = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
+
+  // Load booked seats from backend
+  useEffect(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const date = `${yyyy}-${mm}-${dd}`;
+
+    (async () => {
+      try {
+        const data = await ReservationsService.getMovieSeatsStatus(date);
+        const seats = data?.data?.seats || [];
+        const bookedIds = seats
+          .filter((s) => s && s.isAvailable === false)
+          .map((s) => s.name);
+        setBooked(bookedIds);
+      } catch (e) {
+        console.error("Failed to load movie seats status", e);
+        setFetchError("Failed to load seat status");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   // โต๊ะทั้งหมด
   const tables = [
@@ -103,6 +131,7 @@ const SeatMap = () => {
         <button
           onClick={confirmBooking}
           className="px-6 py-3 bg-pink-500 hover:bg-pink-600 rounded-lg shadow-md font-bold transition duration-200"
+          disabled={loading}
         >
           ยืนยันการเลือกโต๊ะ ({selected.length})
         </button>

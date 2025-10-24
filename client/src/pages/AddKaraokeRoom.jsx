@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-
+import KaraokeService from "../services/karaoke.services";
 
 export default function AddKaraokeRoom() {
   const [name, setName] = useState("");
@@ -12,7 +12,7 @@ export default function AddKaraokeRoom() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
+https://github.com/nabnoey/TK-libralies-System/pull/9/conflict?name=client%252Fsrc%252Fpages%252FEditKaraokeRoom.jsx&ancestor_oid=36e27498b7f4ceb99ab7b490d14b403bd0aa28e6&base_oid=a4719043acdb4c1d141006a5cf70c814e9934d24&head_oid=4b115e8ac8e5bee8da6868d9167a3facac651aad      setImageFile(file);
       const reader = new FileReader();
       reader.onload = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
@@ -177,6 +177,7 @@ export default function AddKaraokeRoom() {
           </div>
         </div>
 
+        {/* ปุ่มเพิ่ม */}
         <div className="mt-10">
           <button
             className="btn btn-primary w-full text-lg font-bold"
