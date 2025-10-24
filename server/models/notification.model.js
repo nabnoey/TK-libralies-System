@@ -13,8 +13,7 @@ const Notification = sequelize.define("Notification", {
         references: {
             model: 'users',
             key: 'userId'
-        },
-        comment: 'User ที่จะได้รับการแจ้งเตือน'
+        }
     },
     reservationId: {
         type: DataTypes.INTEGER,
@@ -22,46 +21,39 @@ const Notification = sequelize.define("Notification", {
         references: {
             model: 'reservations',
             key: 'reservationId'
-        },
-        comment: 'การจองที่เกี่ยวข้อง (ถ้ามี)'
+        }
     },
     type: {
         type: DataTypes.ENUM(
-            'reservation_approved',      // การจองได้รับการอนุมัติ
-            'reservation_rejected',      // การจองถูกปฏิเสธ
-            'checkin_reminder',          // แจ้งเตือนให้ check-in
-            'reservation_cancelled',     // การจองถูกยกเลิก
-            'queue_ready',              // ถึงคิวของคุณแล้ว (คนข้างหน้าเสร็จสิ้น)
-            'queue_update'              // อัปเดตสถานะคิว
+            'reservation_approved',
+            'reservation_rejected',
+            'checkin_reminder',
+            'reservation_cancelled',
+            'queue_ready',
+            'queue_update'
         ),
-        allowNull: false,
-        comment: 'ประเภทของการแจ้งเตือน'
+        allowNull: false
     },
     title: {
         type: DataTypes.STRING,
-        allowNull: false,
-        comment: 'หัวข้อการแจ้งเตือน'
+        allowNull: false
     },
     message: {
         type: DataTypes.TEXT,
-        allowNull: false,
-        comment: 'ข้อความแจ้งเตือน'
+        allowNull: false
     },
     isRead: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false,
-        comment: 'อ่านแล้วหรือยัง'
+        defaultValue: false
     },
     readAt: {
         type: DataTypes.DATE,
-        allowNull: true,
-        comment: 'เวลาที่อ่านการแจ้งเตือน'
+        allowNull: true
     },
     metadata: {
         type: DataTypes.JSON,
-        allowNull: true,
-        comment: 'ข้อมูลเพิ่มเติม (เช่น queueNumber, roomId, etc.)'
+        allowNull: true
     }
 }, {
     tableName: 'notifications',
@@ -78,10 +70,6 @@ const Notification = sequelize.define("Notification", {
     ]
 })
 
-Notification.sync({ force: false }).then(() => {
-    console.log("Notification table created or already existed")
-}).catch((error) => {
-    console.log("Error while creating Notification table", error)
-})
+// ลบ individual sync ออก - ใช้ sync จาก index.js แทน
 
 module.exports = Notification
