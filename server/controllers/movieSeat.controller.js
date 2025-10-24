@@ -3,18 +3,26 @@ const movieSeatController = {};
 
 movieSeatController.create = async (req, res) => {
   try {
-    const { name, image } = req.body;
+    const { name } = req.body;
 
-    if (!name || !image) {
+    if (!name) {
       res
         .status(400)
-        .send({ message: "name and image can not be empty!" });
+        .send({ message: "name cannot be empty!" });
       return;
     }
 
+    if (!req.file) {
+      res.status(400).send({ message: "image file is required!" });
+      return;
+    }
+
+    // สร้าง URL สำหรับเข้าถึงรูปภาพ
+    const imageUrl = `/uploads/${req.file.filename}`;
+
     const newMovieSeat = {
       name: name,
-      image: image,
+      image: imageUrl,
     };
 
     const newSeat = await MovieSeat.create(newMovieSeat)
@@ -59,16 +67,19 @@ movieSeatController.getById = async (req, res) => {
 
 movieSeatController.update = async (req, res) => {
   try{
-    const { name, image } = req.body
+    const { name } = req.body
     const { id } = req.params
 
-    if(!name && !image){
-      return res.status(400).json({ message: 'name or image can not empty!'})
+    if(!name && !req.file){
+      return res.status(400).json({ message: 'name or image cannot be empty!'})
     }
 
     const updateData = {};
     if (name) updateData.name = name;
-    if (image) updateData.image = image;
+    if (req.file) {
+      // ถ้ามีการอัปโหลดรูปใหม่
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
 
     await MovieSeat.update(updateData, { where: { movieId: id}}).then((n) => {
       if(n[0] === 1){

@@ -3,16 +3,24 @@ const karaokeRoomController = {};
 
 karaokeRoomController.create = async (req, res) => {
   try {
-    const { name, image } = req.body;
+    const { name } = req.body;
 
-    if (!name || !image) {
-      res.status(400).send({ message: "name and image cannot be empty!" });
+    if (!name) {
+      res.status(400).send({ message: "name cannot be empty!" });
       return;
     }
 
+    if (!req.file) {
+      res.status(400).send({ message: "image file is required!" });
+      return;
+    }
+
+    // สร้าง URL สำหรับเข้าถึงรูปภาพ
+    const imageUrl = `/uploads/${req.file.filename}`;
+
     const newKaraokeRoom = {
       name: name,
-      image: image,
+      image: imageUrl,
     };
 
     const newRoom = await KaraokeRoom.create(newKaraokeRoom);
@@ -57,10 +65,10 @@ karaokeRoomController.getById = async (req, res) => {
 
 karaokeRoomController.update = async (req, res) => {
   try {
-    const { name, image } = req.body;
+    const { name } = req.body;
     const { id } = req.params;
 
-    if (!name && !image) {
+    if (!name && !req.file) {
       return res
         .status(400)
         .json({ message: "name or image cannot be empty!" });
@@ -68,7 +76,10 @@ karaokeRoomController.update = async (req, res) => {
 
     const updateData = {};
     if (name) updateData.name = name;
-    if (image) updateData.image = image;
+    if (req.file) {
+      // ถ้ามีการอัปโหลดรูปใหม่
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
 
     await KaraokeRoom.update(
       updateData,

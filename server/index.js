@@ -1,4 +1,5 @@
 const express = require('express')
+const path = require('path')
 require('dotenv').config()
 const cors = require('cors')
 const swaggerUi = require('swagger-ui-express')
@@ -22,6 +23,9 @@ app.use(
 // เพิ่มขนาด limit สำหรับรองรับรูปภาพ base64 (10MB)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Static files - ให้บริการไฟล์รูปภาพที่อัปโหลด
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 const sequelize = require('./models/db'); 
 
